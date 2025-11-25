@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/auth_controller.dart';
+import 'package:goverment_complaints/app/modules/auth/views/register_page_view.dart';
 
 class LoginView extends GetView<AuthController> {
   const LoginView({super.key});
@@ -8,7 +9,7 @@ class LoginView extends GetView<AuthController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FA),
+      backgroundColor: const Color(0xFF002623),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -18,23 +19,17 @@ class LoginView extends GetView<AuthController> {
               children: [
                 const SizedBox(height: 20),
 
-                //  LOGO
+                /// LOGO
                 Container(
-                  height: 110,
-                  width: 110,
+                  height: 140,
+                  width: 140,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(40),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      )
-                    ],
                     image: const DecorationImage(
-                      image: AssetImage('assets/images/syrian-republic-logo-png_seeklogo-622502.png'),
+                      image: AssetImage(
+                        'assets/images/syrian-republic-logo-png_seeklogo-622502.png',
+                      ),
                       fit: BoxFit.cover,
-
                     ),
                   ),
                 ),
@@ -42,35 +37,32 @@ class LoginView extends GetView<AuthController> {
                 const SizedBox(height: 30),
 
                 const Text(
-                  "Government Complaints Portal",
+                  "نظام الشكاوى الحكومية",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF006400),
+                    color: Color(0xFFb9a779),
                   ),
                 ),
 
                 const SizedBox(height: 8),
                 const Text(
-                  "Submit complaints, track cases, and stay informed",
+                  "تقديم الشكاوى، تتبع القضايا، والبقاء على اطلاع",
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Color(0xFFedebe0)),
                 ),
 
                 const SizedBox(height: 40),
 
                 Form(
-                  key: controller.formKey,
+                  key: controller.formKey.value,
                   child: Column(
                     children: [
-                      // Email
+                      /// Email
                       TextFormField(
                         decoration: InputDecoration(
-                          labelText: 'Email',
+                          labelText: "الايميل او رقم الهاتف",
                           filled: true,
                           fillColor: Colors.white,
                           prefixIcon: const Icon(Icons.email_outlined),
@@ -81,19 +73,20 @@ class LoginView extends GetView<AuthController> {
                         ),
                         onChanged: (v) => controller.email.value = v,
                         validator: (v) {
-                          if (v == null || v.isEmpty) return 'Email required';
-                          if (!v.contains('@')) return 'Invalid email';
+                          if (v == null || v.isEmpty) {
+                            return 'الحقل مطلوب';
+                          }
                           return null;
                         },
                       ),
 
                       const SizedBox(height: 18),
 
-                      // Password
+                      /// Password
                       TextFormField(
                         obscureText: true,
                         decoration: InputDecoration(
-                          labelText: 'Password',
+                          labelText: 'كلمة السر',
                           filled: true,
                           fillColor: Colors.white,
                           prefixIcon: const Icon(Icons.lock_outline),
@@ -104,58 +97,86 @@ class LoginView extends GetView<AuthController> {
                         ),
                         onChanged: (v) => controller.password.value = v,
                         validator: (v) {
-                          if (v == null || v.isEmpty) return 'Password required';
-                          if (v.length < 6) return 'Min 6 characters';
+                          if (v == null || v.isEmpty) {
+                            return 'كلمة السر مطلوبة';
+                          }
+                          if (v.length < 6) {
+                            return 'يجب ان تكون 6 أحرف على الأقل';
+                          }
                           return null;
                         },
                       ),
 
                       const SizedBox(height: 28),
 
-                      Obx(() => SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: ElevatedButton(
-                          onPressed: controller.isLoading.value
-                              ? null
-                              : controller.login,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF006400),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                      /// Login Button + isLoading (Obx USES observable correctly)
+                      Obx(
+                            () => SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton(
+                            onPressed: controller.isLoading.value
+                                ? null
+                                : () => controller.login(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFb9a779),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
                             ),
-                          ),
-                          child: controller.isLoading.value
-                              ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                              : const Text(
-                            "Login",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white
+                            child: controller.isLoading.value
+                                ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                                : const Text(
+                              "تسجيل الدخول",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ),
-                      )),
+                      ),
 
                       const SizedBox(height: 20),
 
-                      TextButton(
-                        onPressed: () {},
-                        child: const Text(
-                          "Forgot password?",
-                          style: TextStyle(
-                            color: Color(0xFF283593),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          TextButton(
+                            onPressed: () {
+                              Get.to(RefgisterView());
+                            },
+                            child: const Text(
+                              "انشاء حساب",
+                              style: TextStyle(
+                                color: Color(0xFFb9a779),
+                                decorationColor: Color(0xFFb9a779),
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
                           ),
-                        ),
-                      )
+                          const SizedBox(width: 20),
+                          TextButton(
+                            onPressed: () {},
+                            child: const Text(
+                              "هل نسيت كلمة السر؟",
+                              style: TextStyle(
+                                color: Color(0xFFb9a779),
+                                decoration: TextDecoration.underline,
+                                decorationColor: Color(0xFFb9a779),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),

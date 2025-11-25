@@ -6,18 +6,20 @@ import '../../../services/api_service.dart';
 import '../models/request/login/login_request_model.dart';
 import '../models/response/user_model.dart';
 
-
 class AuthController extends GetxController {
   final ApiService _api = Get.find<ApiService>();
 
-  final formKey = GlobalKey<FormState>();
+  /// ✔ حل مشكلة GlobalKey used multiple times
+  final formKey = Rx<GlobalKey<FormState>>(GlobalKey<FormState>());
+
   final email = ''.obs;
   final password = ''.obs;
   final isLoading = false.obs;
   final user = Rxn<UserModel>();
 
   Future<void> login() async {
-    if (!formKey.currentState!.validate()) return;
+    // استخدم .value للوصول إلى المفتاح
+    if (!formKey.value.currentState!.validate()) return;
 
     isLoading.value = true;
 
@@ -27,18 +29,12 @@ class AuthController extends GetxController {
         password: password.value,
       );
 
-      final data = await _api.post(
-        '/login',
-        data: request.toJson(),
-      );
+      final data = await _api.post('/login', data: request.toJson());
 
       final userJson = data['user'];
       final token = data['token'];
 
-      user.value = UserModel.fromJson({
-        ...userJson,
-        'token': token,
-      });
+      user.value = UserModel.fromJson({...userJson, 'token': token});
 
       Get.offAllNamed(AppRoutes.home);
     } catch (e) {
