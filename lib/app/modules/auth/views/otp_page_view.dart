@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:goverment_complaints/app/modules/auth/controllers/verify_otp_controller.dart';
 import 'package:goverment_complaints/app/modules/auth/models/request/otp_request_model.dart';
 import 'package:goverment_complaints/app/modules/complaints/views/create_complaints_page_view.dart';
+import 'package:goverment_complaints/app/routes/app_routes.dart';
 
 class OTPVerificationView extends StatefulWidget {
   const OTPVerificationView({super.key});
@@ -158,8 +159,7 @@ class _OTPVerificationViewState extends State<OTPVerificationView>
         backgroundColor: Color(0xFFb9a779),
         colorText: Colors.white,
       );
-      // انتقل للصفحة الرئيسية (استبدل ComplaintsPageView إذا الصفحة الأساسية مختلفة)
-      Get.offAll(() => const HomeView());
+      Get.offAllNamed(AppRoutes.home);
     } else {
       Get.snackbar(
         'فشل',

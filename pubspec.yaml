@@ -57,6 +57,9 @@ dependencies:
   url_launcher: ^6.2.4
   file_picker: ^10.3.7
   syncfusion_flutter_pdfviewer: ^31.1.19
+  firebase_core: ^3.4.0
+  firebase_messaging: ^15.0.0
+  flutter_local_notifications: ^17.2.2
 
 
 
