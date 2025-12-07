@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:goverment_complaints/app/modules/auth/views/complaints_page_view.dart';
+import 'package:goverment_complaints/app/modules/auth/controllers/verify_otp_controller.dart';
+import 'package:goverment_complaints/app/modules/auth/models/request/otp_request_model.dart';
+import 'package:goverment_complaints/app/modules/complaints/views/create_complaints_page_view.dart';
 
 class OTPVerificationView extends StatefulWidget {
   const OTPVerificationView({super.key});
@@ -9,45 +11,56 @@ class OTPVerificationView extends StatefulWidget {
   State<OTPVerificationView> createState() => _OTPVerificationViewState();
 }
 
-class _OTPVerificationViewState extends State<OTPVerificationView> with SingleTickerProviderStateMixin {
+class _OTPVerificationViewState extends State<OTPVerificationView>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
 
-  final List<TextEditingController> _controllers = List.generate(6, (index) => TextEditingController());
+  final List<TextEditingController> _controllers = List.generate(
+    6,
+    (index) => TextEditingController(),
+  );
   final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
 
   int _countdown = 60;
   bool _canResend = false;
+  late final VerifyOtpController _controller;
+  late final int _citizenId;
 
   @override
   void initState() {
     super.initState();
+
+    _controller = Get.find<VerifyOtpController>();
+
+    final args = Get.arguments ?? {};
+    final dynamic rawId = args['citizen_id'];
+    _citizenId =
+        rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '') ?? 0;
+
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
 
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: const Interval(0.0, 0.6, curve: Curves.easeIn),
-    ));
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeIn),
+      ),
+    );
 
-    _scaleAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: const Interval(0.4, 1.0, curve: Curves.elasticOut),
-    ));
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: const Interval(0.4, 1.0, curve: Curves.elasticOut),
+      ),
+    );
 
     _animationController.forward();
     _startCountdown();
 
-    // إضافة مستمعين للحقول
     for (int i = 0; i < _controllers.length; i++) {
       _controllers[i].addListener(() {
         if (_controllers[i].text.length == 1 && i < 5) {
@@ -56,56 +69,105 @@ class _OTPVerificationViewState extends State<OTPVerificationView> with SingleTi
         if (_controllers[i].text.isEmpty && i > 0) {
           _focusNodes[i - 1].requestFocus();
         }
+        setState(() {});
       });
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNodes[0].requestFocus();
+    });
   }
 
   void _startCountdown() {
     Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
-        setState(() {
-          if (_countdown > 0) {
-            _countdown--;
-            _startCountdown();
-          } else {
-            _canResend = true;
-          }
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        if (_countdown > 0) {
+          _countdown--;
+          _startCountdown();
+        } else {
+          _canResend = true;
+        }
+      });
     });
   }
 
-  void _resendOTP() {
+  Future<void> _resendOTP() async {
+    if (_citizenId == 0) {
+      Get.snackbar(
+        'خطأ',
+        'معرّف المواطن غير موجود لإعادة الإرسال',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
     setState(() {
       _countdown = 60;
       _canResend = false;
-      // مسح جميع الحقول
-      for (var controller in _controllers) {
-        controller.clear();
+      for (var c in _controllers) {
+        c.clear();
       }
       _focusNodes[0].requestFocus();
     });
-    _startCountdown();
 
-    // أنيميشن عند إعادة الإرسال
-    _animationController.reset();
-    _animationController.forward();
+    // // أنادي الكونترولر لإعادة الإرسال
+    // final ok = await _controller.resendOtp(_citizenId);
+    // if (ok) {
+    //   // إعادة تشغيل العدّاد
+    //   _startCountdown();
+    //   _animationController.reset();
+    //   _animationController.forward();
+    // } else {
+    //   // إذا فشل أسمح بإعادة المحاولة على الفور أو بعد رسالة
+    //   setState(() {
+    //     _canResend = true;
+    //   });
+    // }
   }
 
-  void _verifyOTP() {
-    Get.to(HomeView());
-    // String otp = _controllers.map((controller) => controller.text).join();
-    // if (otp.length == 6) {
-    //   // هنا تكتب منطق التحقق من OTP
-    //   Get.rawSnackbar(
-    //     messageText: const Text(
-    //       "جاري التحقق من الرمز...",
-    //       style: TextStyle(color: Color(0xFFedebe0)),
-    //     ),
-    //     backgroundColor: const Color(0xFF002623),
-    //     borderColor: const Color(0xFFb9a779),
-    //   );
-    // }
+  Future<void> _verifyOTP() async {
+    String otp = _controllers.map((c) => c.text.trim()).join();
+    if (otp.length != 6) {
+      Get.snackbar(
+        'خطأ',
+        'الرجاء إدخال رمز مكون من 6 أرقام',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+    if (_citizenId == 0) {
+      Get.snackbar(
+        'خطأ',
+        'معرّف المواطن غير موجود',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    final req = VerifyOtpRequest(otp: otp, citizenId: _citizenId);
+    final resp = await _controller.verifyOtp(req);
+
+    if (resp != null && resp.status.toLowerCase() == 'success') {
+      Get.snackbar(
+        'تم',
+        resp.message,
+        backgroundColor: Color(0xFFb9a779),
+        colorText: Colors.white,
+      );
+      // انتقل للصفحة الرئيسية (استبدل ComplaintsPageView إذا الصفحة الأساسية مختلفة)
+      Get.offAll(() => const HomeView());
+    } else {
+      Get.snackbar(
+        'فشل',
+        resp?.message ?? 'فشل التحقق',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
 
   @override
@@ -118,6 +180,63 @@ class _OTPVerificationViewState extends State<OTPVerificationView> with SingleTi
       focusNode.dispose();
     }
     super.dispose();
+  }
+
+  Widget _buildOtpFields() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: List.generate(6, (index) {
+        return AnimatedContainer(
+          duration: Duration(milliseconds: 300 + (index * 100)),
+          curve: Curves.easeOutBack,
+          width: 50,
+          height: 60,
+          decoration: BoxDecoration(
+            color: const Color(0xFF003832),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color:
+                  _controllers[index].text.isEmpty
+                      ? const Color(0xFFb9a779).withOpacity(0.3)
+                      : const Color(0xFFb9a779),
+              width: 2,
+            ),
+            boxShadow: [
+              if (_controllers[index].text.isNotEmpty)
+                BoxShadow(
+                  color: const Color(0xFFb9a779).withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+            ],
+          ),
+          child: TextField(
+            controller: _controllers[index],
+            focusNode: _focusNodes[index],
+            textAlign: TextAlign.center,
+            keyboardType: TextInputType.number,
+            maxLength: 1,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFedebe0),
+            ),
+            decoration: const InputDecoration(
+              counterText: "",
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.zero,
+            ),
+            onChanged: (value) async {
+              // إذا وصلنا للحرف السادس وملأناه نحقق تلقائيًا
+              if (value.isNotEmpty && index == 5) {
+                await Future.delayed(const Duration(milliseconds: 100));
+                _verifyOTP();
+              }
+            },
+          ),
+        );
+      }),
+    );
   }
 
   @override
@@ -174,174 +293,114 @@ class _OTPVerificationViewState extends State<OTPVerificationView> with SingleTi
                     const SizedBox(height: 40),
 
                     /// OTP Fields
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: List.generate(6, (index) {
-                        return AnimatedContainer(
-                          duration: Duration(milliseconds: 300 + (index * 100)),
-                          curve: Curves.easeOutBack,
-                          width: 50,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF003832),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: _controllers[index].text.isEmpty
-                                  ? const Color(0xFFb9a779).withOpacity(0.3)
-                                  : const Color(0xFFb9a779),
-                              width: 2,
-                            ),
-                            boxShadow: [
-                              if (_controllers[index].text.isNotEmpty)
-                                BoxShadow(
-                                  color: const Color(0xFFb9a779).withOpacity(0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                            ],
-                          ),
-                          child: TextField(
-                            controller: _controllers[index],
-                            focusNode: _focusNodes[index],
-                            textAlign: TextAlign.center,
-                            keyboardType: TextInputType.number,
-                            maxLength: 1,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFFedebe0),
-                            ),
-                            decoration: const InputDecoration(
-                              counterText: "",
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                            onChanged: (value) {
-                              setState(() {});
-                              if (value.isNotEmpty && index == 5) {
-                                _verifyOTP();
-                              }
-                            },
-                          ),
-                        );
-                      }),
-                    ),
+                    _buildOtpFields(),
 
                     const SizedBox(height: 30),
 
-                    /// Countdown Timer
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 500),
-                      child: _canResend
-                          ? Column(
-                        children: [
-                          const Text(
-                            "لم تستلم الرمز؟",
-                            style: TextStyle(
-                              color: Color(0xFFedebe0),
-                              fontSize: 16,
+                    /// Countdown & Resend
+                    // Obx(() {
+                    //   final resendLoading = _controller.resendLoading.value;
+                    //   if (_canResend) {
+                    //     return Column(
+                    //       children: [
+                    //         const Text(
+                    //           "لم تستلم الرمز؟",
+                    //           style: TextStyle(
+                    //             color: Color(0xFFedebe0),
+                    //             fontSize: 16,
+                    //           ),
+                    //         ),
+                    //         const SizedBox(height: 8),
+                    //         SizedBox(
+                    //           width: double.infinity,
+                    //           height: 52,
+                    //           child: OutlinedButton(
+                    //             onPressed: resendLoading ? null : _resendOTP,
+                    //             style: OutlinedButton.styleFrom(
+                    //               foregroundColor: const Color(0xFFb9a779),
+                    //               side: const BorderSide(
+                    //                 color: Color(0xFFb9a779),
+                    //                 width: 2,
+                    //               ),
+                    //               shape: RoundedRectangleBorder(
+                    //                 borderRadius: BorderRadius.circular(14),
+                    //               ),
+                    //             ),
+                    //             child:
+                    //                 resendLoading
+                    //                     ? const CircularProgressIndicator()
+                    //                     : const Text(
+                    //                       "إعادة إرسال الرمز",
+                    //                       style: TextStyle(
+                    //                         fontSize: 16,
+                    //                         fontWeight: FontWeight.w600,
+                    //                         color: Color(0xFFb9a779),
+                    //                       ),
+                    //                     ),
+                    //           ),
+                    //         ),
+                    //       ],
+                    //     );
+                    //   } else {
+                    //     return Row(
+                    //       mainAxisAlignment: MainAxisAlignment.center,
+                    //       children: [
+                    //         const Text(
+                    //           "إعادة الإرسال خلال ",
+                    //           style: TextStyle(
+                    //             color: Color(0xFFedebe0),
+                    //             fontSize: 16,
+                    //           ),
+                    //         ),
+                    //         Text(
+                    //           "$_countdown ثانية",
+                    //           style: const TextStyle(
+                    //             color: Color(0xFFb9a779),
+                    //             fontSize: 16,
+                    //             fontWeight: FontWeight.bold,
+                    //           ),
+                    //         ),
+                    //       ],
+                    //     );
+                    //   }
+                    // }),
+
+                    // const SizedBox(height: 30),
+
+                    // /// Verify Button
+                    Obx(() {
+                      final isLoading = _controller.isLoading.value;
+                      return SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: isLoading ? null : _verifyOTP,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFb9a779),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
                             ),
+                            elevation: 4,
+                            shadowColor: const Color(
+                              0xFFb9a779,
+                            ).withOpacity(0.5),
                           ),
-                          const SizedBox(height: 8),
-                          // Resend Button
-                          SizedBox(
-                            width: double.infinity,
-                            height: 52,
-                            child: OutlinedButton(
-                              onPressed: _resendOTP,
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: const Color(0xFFb9a779),
-                                side: const BorderSide(
-                                  color: Color(0xFFb9a779),
-                                  width: 2,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                              ),
-                              child: const Text(
-                                "إعادة إرسال الرمز",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFFb9a779),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      )
-                          : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            "إعادة الإرسال خلال ",
-                            style: TextStyle(
-                              color: Color(0xFFedebe0),
-                              fontSize: 16,
-                            ),
-                          ),
-                          TweenAnimationBuilder(
-                            duration: Duration(seconds: _countdown),
-                            tween: Tween(begin: _countdown.toDouble(), end: 0.0),
-                            builder: (context, value, child) {
-                              return Text(
-                                "${value.toInt()} ثانية",
-                                style: const TextStyle(
-                                  color: Color(0xFFb9a779),
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 30),
-
-                    /// Verify Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: _verifyOTP,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFb9a779),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          elevation: 4,
-                          shadowColor: const Color(0xFFb9a779).withOpacity(0.5),
+                          child:
+                              isLoading
+                                  ? const CircularProgressIndicator(
+                                    color: Color(0xFFb9a779),
+                                  )
+                                  : const Text(
+                                    "تحقق",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                         ),
-                        child: const Text(
-                          "تحقق",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    /// Back to Login
-                    TextButton(
-                      onPressed: () => Get.back(),
-                      child: const Text(
-                        "العودة لتسجيل الدخول",
-                        style: TextStyle(
-                          color: Color(0xFFb9a779),
-                          fontSize: 16,
-                          decoration: TextDecoration.underline,
-                          decorationColor: Color(0xFFb9a779),
-                        ),
-                      ),
-                    ),
-
+                      );
+                    }),
                     const SizedBox(height: 40),
                   ],
                 ),
