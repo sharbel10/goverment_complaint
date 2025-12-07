@@ -1,192 +1,204 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/auth_controller.dart';
+import 'package:goverment_complaints/app/modules/auth/controllers/login_controller.dart';
 import 'package:goverment_complaints/app/modules/auth/views/register_page_view.dart';
+import 'package:goverment_complaints/app/routes/app_routes.dart';
 
-class LoginView extends GetView<AuthController> {
+class LoginView extends StatelessWidget {
   const LoginView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final LoginController controller = Get.find();
     return Scaffold(
       backgroundColor: const Color(0xFF002623),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(height: 20),
+      body: Obx(() {
+        return SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 20),
 
-                /// LOGO
-                Container(
-                  height: 140,
-                  width: 140,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(40),
-                    image: const DecorationImage(
-                      image: AssetImage(
-                        'assets/images/syrian-republic-logo-png_seeklogo-622502.png',
+                  /// LOGO
+                  Container(
+                    height: 140,
+                    width: 140,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(40),
+                      image: const DecorationImage(
+                        image: AssetImage(
+                          'assets/images/syrian-republic-logo-png_seeklogo-622502.png',
+                        ),
+                        fit: BoxFit.cover,
                       ),
-                      fit: BoxFit.cover,
                     ),
                   ),
-                ),
 
-                const SizedBox(height: 30),
+                  const SizedBox(height: 30),
 
-                const Text(
-                  "نظام الشكاوى الحكومية",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFb9a779),
+                  const Text(
+                    "نظام الشكاوى الحكومية",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFb9a779),
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 8),
-                const Text(
-                  "تقديم الشكاوى، تتبع القضايا، والبقاء على اطلاع",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Color(0xFFedebe0)),
-                ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "تقديم الشكاوى، تتبع القضايا، والبقاء على اطلاع",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14, color: Color(0xFFedebe0)),
+                  ),
 
-                const SizedBox(height: 40),
+                  const SizedBox(height: 40),
 
-                Form(
-                  key: controller.formKey.value,
-                  child: Column(
-                    children: [
-                      /// Email
-                      TextFormField(
-                        decoration: InputDecoration(
-                          labelText: "الايميل او رقم الهاتف",
-                          filled: true,
-                          fillColor: Colors.white,
-                          prefixIcon: const Icon(Icons.email_outlined),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide.none,
+                  Form(
+                    child: Column(
+                      children: [
+                        /// Email
+                        TextFormField(
+                          controller: controller.email,
+                          decoration: InputDecoration(
+                            labelText: "الايميل او رقم الهاتف",
+                            filled: true,
+                            fillColor: Colors.white,
+                            prefixIcon: const Icon(Icons.email_outlined),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
                           ),
+                          // onChanged: (v) => controller.email.value = v,
+                          validator: (v) {
+                            if (v == null || v.isEmpty) {
+                              return 'الحقل مطلوب';
+                            }
+                            return null;
+                          },
                         ),
-                        onChanged: (v) => controller.email.value = v,
-                        validator: (v) {
-                          if (v == null || v.isEmpty) {
-                            return 'الحقل مطلوب';
-                          }
-                          return null;
-                        },
-                      ),
 
-                      const SizedBox(height: 18),
+                        const SizedBox(height: 18),
 
-                      /// Password
-                      TextFormField(
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: 'كلمة السر',
-                          filled: true,
-                          fillColor: Colors.white,
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide.none,
+                        /// Password
+                        TextFormField(
+                          controller: controller.password,
+                          obscureText: true,
+                          decoration: InputDecoration(
+                            labelText: 'كلمة السر',
+                            filled: true,
+                            fillColor: Colors.white,
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
                           ),
+                          // onChanged: (v) => controller.password.value = v,
+                          validator: (v) {
+                            if (v == null || v.isEmpty) {
+                              return 'كلمة السر مطلوبة';
+                            }
+                            if (v.length < 6) {
+                              return 'يجب ان تكون 6 أحرف على الأقل';
+                            }
+                            return null;
+                          },
                         ),
-                        onChanged: (v) => controller.password.value = v,
-                        validator: (v) {
-                          if (v == null || v.isEmpty) {
-                            return 'كلمة السر مطلوبة';
-                          }
-                          if (v.length < 6) {
-                            return 'يجب ان تكون 6 أحرف على الأقل';
-                          }
-                          return null;
-                        },
-                      ),
 
-                      const SizedBox(height: 28),
+                        const SizedBox(height: 28),
 
-                      /// Login Button + isLoading (Obx USES observable correctly)
-                      Obx(
-                            () => SizedBox(
+                        /// Login Button + isLoading (Obx USES observable correctly)
+                        SizedBox(
                           width: double.infinity,
                           height: 52,
                           child: ElevatedButton(
-                            onPressed: controller.isLoading.value
-                                ? null
-                                : () => controller.login(),
+                            onPressed:
+                                controller.isLoading.value
+                                    ? null
+                                    : () async {
+                                      final resp = await controller.login();
+                                      if (resp != null) {
+                                        Get.snackbar(
+                                          'نجاح',
+                                          resp.message,
+                                          backgroundColor: Color(0xFFb9a779),
+                                          colorText: Colors.white,
+                                        );
+
+                                        Get.offAllNamed(AppRoutes.home);
+                                      }
+                                    },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFb9a779),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),
                             ),
-                            child: controller.isLoading.value
-                                ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                                : const Text(
-                              "تسجيل الدخول",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
+                            child:
+                                controller.isLoading.value
+                                    ? CircularProgressIndicator(
+                                      color: Color(0xFFb9a779),
+                                    )
+                                    : Text(
+                                      "تسجيل الدخول",
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                    ),
                           ),
                         ),
-                      ),
 
-                      const SizedBox(height: 20),
+                        const SizedBox(height: 20),
 
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          TextButton(
-                            onPressed: () {
-                              Get.to(RefgisterView());
-                            },
-                            child: const Text(
-                              "انشاء حساب",
-                              style: TextStyle(
-                                color: Color(0xFFb9a779),
-                                decorationColor: Color(0xFFb9a779),
-                                decoration: TextDecoration.underline,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            TextButton(
+                              onPressed: () {
+                                Get.to(RegisterView());
+                              },
+                              child: const Text(
+                                "انشاء حساب",
+                                style: TextStyle(
+                                  color: Color(0xFFb9a779),
+                                  decorationColor: Color(0xFFb9a779),
+                                  decoration: TextDecoration.underline,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 20),
-                          TextButton(
-                            onPressed: () {},
-                            child: const Text(
-                              "هل نسيت كلمة السر؟",
-                              style: TextStyle(
-                                color: Color(0xFFb9a779),
-                                decoration: TextDecoration.underline,
-                                decorationColor: Color(0xFFb9a779),
+                            const SizedBox(width: 20),
+                            TextButton(
+                              onPressed: () {},
+                              child: const Text(
+                                "هل نسيت كلمة السر؟",
+                                style: TextStyle(
+                                  color: Color(0xFFb9a779),
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: Color(0xFFb9a779),
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 40),
-              ],
+                  const SizedBox(height: 40),
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      }),
     );
   }
 }

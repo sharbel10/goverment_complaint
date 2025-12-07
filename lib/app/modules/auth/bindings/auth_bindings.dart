@@ -1,19 +1,13 @@
 import 'package:get/get.dart';
-import 'package:goverment_complaints/app/services/network_service.dart';
-
-import '../../../services/api_service.dart';
-import '../controllers/auth_controller.dart';
+import 'package:goverment_complaints/app/modules/auth/controllers/login_controller.dart';
+import 'package:goverment_complaints/app/modules/auth/controllers/register_controller.dart';
+import 'package:goverment_complaints/app/modules/auth/controllers/verify_otp_controller.dart';
 
 class AuthBinding extends Bindings {
   @override
   void dependencies() {
-    if (!Get.isRegistered<ApiService>()) {
-      Get.lazyPut<ApiService>(() => ApiService(), fenix: true);
-    }
-    if (!Get.isRegistered<NetworkService>()) {
-      Get.lazyPut<NetworkService>(() => NetworkService(), fenix: true);
-    }
-
-    Get.lazyPut<AuthController>(() => AuthController());
+    Get.lazyPut<RegisterController>(() => RegisterController());
+    Get.lazyPut<VerifyOtpController>(() => VerifyOtpController());
+    Get.lazyPut<LoginController>(() => LoginController());
   }
 }
