@@ -17,6 +17,7 @@ class RegisterController extends GetxController {
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   Future<RegisterResponse?> register() async {
+    if (!formKey.currentState!.validate()) return null;
     final req = RegisterRequest(
       email: email.text.trim(),
       name: name.text.trim(),
@@ -24,6 +25,7 @@ class RegisterController extends GetxController {
       passConfirm: passwordConfirm.text.trim(),
       idNumber: idNumber.text.trim(),
     );
+
     isLoading.value = true;
     try {
       final response = await _api.post('register', data: req.toJson());

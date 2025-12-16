@@ -24,6 +24,39 @@ class _HomeViewState extends State<HomeView> {
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   final ApiService _api = Get.find<ApiService>();
+  List<String> syrianGovernorates = [
+    'دمشق',
+    'ريف دمشق',
+    'حلب',
+    'حمص',
+    'حماة',
+    'اللاذقية',
+    'طرطوس',
+    'إدلب',
+    'دير الزور',
+    'الرقة',
+    'الحسكة',
+    'درعا',
+    'السويداء',
+    'القنيطرة',
+  ];
+  List<String> complaintEntities = [
+    'وزارة الكهرباء',
+    'وزارة المياه',
+    'وزارة الاتصالات',
+    'البلدية',
+    'المرور',
+    'جهة أخرى',
+  ];
+  List<String> complaintTypes = [
+    'خدمات',
+    'كهرباء',
+    'مياه',
+    'اتصالات',
+    'نظافة',
+    'مرور',
+    'أخرى',
+  ];
 
   @override
   void dispose() {
@@ -149,6 +182,37 @@ class _HomeViewState extends State<HomeView> {
         validator: (v) => (v == null || v.isEmpty) ? 'الحقل مطلوب' : null,
       ),
     );
+  }
+
+  Widget _buildDropdown({
+    required String label,
+    required List<String> items,
+    required RxString selectedValue,
+    IconData? icon,
+  }) {
+    return Obx(() {
+      return DropdownButtonFormField<String>(
+        value: selectedValue.value.isEmpty ? null : selectedValue.value,
+        decoration: InputDecoration(
+          labelText: label,
+          filled: true,
+          fillColor: Colors.white,
+          prefixIcon: icon != null ? Icon(icon) : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
+          ),
+        ),
+        items:
+            items
+                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                .toList(),
+        onChanged: (v) {
+          if (v != null) selectedValue.value = v;
+        },
+        validator: (v) => (v == null || v.isEmpty) ? 'الحقل مطلوب' : null,
+      );
+    });
   }
 
   Widget _buildFilePickerPlaceholder() {
@@ -356,24 +420,46 @@ class _HomeViewState extends State<HomeView> {
                   const SizedBox(height: 6),
 
                   const SizedBox(height: 6),
-
-                  _buildField(
-                    "نوع الشكوى",
-                    controller.typeCtrl,
+                  _buildDropdown(
+                    label: 'نوع الشكوى',
+                    items: complaintTypes,
+                    selectedValue: controller.selectedType,
                     icon: Icons.featured_play_list_outlined,
                   ),
                   const SizedBox(height: 18),
-                  _buildField(
-                    "الجهة",
-                    controller.entityCtrl,
-                    icon: Icons.person,
+
+                  _buildDropdown(
+                    label: 'الجهة',
+                    items: complaintEntities,
+                    selectedValue: controller.selectedEntity,
+                    icon: Icons.account_balance,
                   ),
                   const SizedBox(height: 18),
-                  _buildField(
-                    "الموقع",
-                    controller.locationCtrl,
+
+                  _buildDropdown(
+                    label: 'الموقع',
+                    items: syrianGovernorates,
+                    selectedValue: controller.selectedLocation,
                     icon: Icons.place_outlined,
                   ),
+
+                  // _buildField(
+                  //   "نوع الشكوى",
+                  //   controller.typeCtrl,
+                  //   icon: Icons.featured_play_list_outlined,
+                  // ),
+                  // const SizedBox(height: 18),
+                  // _buildField(
+                  //   "الجهة",
+                  //   controller.entityCtrl,
+                  //   icon: Icons.person,
+                  // ),
+                  // const SizedBox(height: 18),
+                  // _buildField(
+                  //   "الموقع",
+                  //   controller.locationCtrl,
+                  //   icon: Icons.place_outlined,
+                  // ),
                   const SizedBox(height: 18),
                   _buildDescriptionField(),
                   const SizedBox(height: 18),

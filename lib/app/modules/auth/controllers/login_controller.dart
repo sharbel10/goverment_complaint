@@ -10,10 +10,12 @@ class LoginController extends GetxController {
   final TextEditingController email = TextEditingController();
   final TextEditingController password = TextEditingController();
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  final formKey = GlobalKey<FormState>();
 
   var isLoading = false.obs;
 
   Future<LoginResponse?> login() async {
+    if (!formKey.currentState!.validate()) return null;
     final req = LoginRequest(
       email: email.text.trim(),
       password: password.text.trim(),

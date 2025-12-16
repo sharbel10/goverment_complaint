@@ -8,10 +8,13 @@ import '../models/response/create_complaint_response_model.dart';
 
 class CreateComplaintController extends GetxController {
   final ApiService _api = Get.find<ApiService>();
+  final RxString selectedType = ''.obs;
+  final RxString selectedEntity = ''.obs;
+  final RxString selectedLocation = ''.obs;
 
-  final TextEditingController typeCtrl = TextEditingController();
-  final TextEditingController entityCtrl = TextEditingController();
-  final TextEditingController locationCtrl = TextEditingController();
+  // final TextEditingController typeCtrl = TextEditingController();
+  // final TextEditingController entityCtrl = TextEditingController();
+  // final TextEditingController locationCtrl = TextEditingController();
   final TextEditingController descriptionCtrl = TextEditingController();
 
   final RxList<PlatformFile> attachments = <PlatformFile>[].obs;
@@ -21,9 +24,6 @@ class CreateComplaintController extends GetxController {
 
   @override
   void onClose() {
-    typeCtrl.dispose();
-    entityCtrl.dispose();
-    locationCtrl.dispose();
     descriptionCtrl.dispose();
     super.onClose();
   }
@@ -92,9 +92,9 @@ class CreateComplaintController extends GetxController {
   }
 
   Future<ComplaintSubmitResponse?> submit() async {
-    final type = typeCtrl.text.trim();
-    final entity = entityCtrl.text.trim();
-    final location = locationCtrl.text.trim();
+    final type = selectedType.value;
+    final entity = selectedEntity.value;
+    final location = selectedLocation.value;
     final description = descriptionCtrl.text.trim();
 
     if (type.isEmpty ||
@@ -186,9 +186,9 @@ class CreateComplaintController extends GetxController {
   }
 
   void clearAll() {
-    typeCtrl.clear();
-    entityCtrl.clear();
-    locationCtrl.clear();
+    selectedType.value = '';
+    selectedEntity.value = '';
+    selectedLocation.value = '';
     descriptionCtrl.clear();
     attachments.clear();
     uploadProgress.value = 0.0;

@@ -73,6 +73,12 @@ class RegisterView extends StatelessWidget {
                               borderSide: BorderSide.none,
                             ),
                           ),
+                          validator: (v) {
+                            if (v == null || v.isEmpty) {
+                              return 'الحقل مطلوب';
+                            }
+                            return null;
+                          },
                         ),
 
                         const SizedBox(height: 18),
@@ -89,6 +95,12 @@ class RegisterView extends StatelessWidget {
                               borderSide: BorderSide.none,
                             ),
                           ),
+                          validator: (v) {
+                            if (v == null || v.isEmpty) {
+                              return 'الحقل مطلوب';
+                            }
+                            return null;
+                          },
                         ),
 
                         const SizedBox(height: 18),
@@ -105,6 +117,12 @@ class RegisterView extends StatelessWidget {
                               borderSide: BorderSide.none,
                             ),
                           ),
+                          validator: (v) {
+                            if (v == null || v.isEmpty) {
+                              return 'الحقل مطلوب';
+                            }
+                            return null;
+                          },
                         ),
 
                         const SizedBox(height: 18),
@@ -122,6 +140,15 @@ class RegisterView extends StatelessWidget {
                               borderSide: BorderSide.none,
                             ),
                           ),
+                          validator: (v) {
+                            if (v == null || v.isEmpty) {
+                              return 'كلمة السر مطلوبة';
+                            }
+                            if (v.length < 6) {
+                              return 'يجب ان تكون 8 أحرف على الأقل';
+                            }
+                            return null;
+                          },
                         ),
 
                         const SizedBox(height: 28),
@@ -139,6 +166,12 @@ class RegisterView extends StatelessWidget {
                               borderSide: BorderSide.none,
                             ),
                           ),
+                          validator: (v) {
+                            if (v == null || v.isEmpty) {
+                              return 'الحقل مطلوب';
+                            }
+                            return null;
+                          },
                         ),
 
                         const SizedBox(height: 28),

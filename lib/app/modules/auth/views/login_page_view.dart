@@ -59,6 +59,7 @@ class LoginView extends StatelessWidget {
                   const SizedBox(height: 40),
 
                   Form(
+                    key: controller.formKey,
                     child: Column(
                       children: [
                         /// Email
@@ -104,9 +105,7 @@ class LoginView extends StatelessWidget {
                             if (v == null || v.isEmpty) {
                               return 'كلمة السر مطلوبة';
                             }
-                            if (v.length < 6) {
-                              return 'يجب ان تكون 6 أحرف على الأقل';
-                            }
+
                             return null;
                           },
                         ),

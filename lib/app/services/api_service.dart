@@ -196,34 +196,6 @@ class ApiService {
       throw _handleDioError(e);
     }
   }
-  // Future<Uint8List> downloadFileBytes(
-  //   String url, {
-  //   void Function(int, int)? onReceiveProgress,
-  // }) async {
-  //   await _ensureConnection();
-
-  //   try {
-  //     final headers = {
-  //       ...?_dio.options.headers,
-  //       if (_dio.options.headers != null) ..._dio.options.headers!,
-  //     }..remove('content-type');
-
-  //     headers['Accept'] = '*/*';
-
-  //     final response = await _dio.get<List<int>>(
-  //       url,
-  //       options: Options(responseType: ResponseType.bytes, headers: headers),
-  //       onReceiveProgress: onReceiveProgress,
-  //     );
-
-  //     final data = response.data;
-  //     if (data == null)
-  //       throw ApiException('Empty response while downloading file');
-  //     return Uint8List.fromList(data);
-  //   } on DioError catch (e) {
-  //     throw _handleDioError(e);
-  //   }
-  // }
 
   ApiException _handleDioError(DioError e) {
     if (e.type == DioErrorType.connectionTimeout ||
