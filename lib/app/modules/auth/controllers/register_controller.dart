@@ -31,18 +31,22 @@ class RegisterController extends GetxController {
       final response = await _api.post('register', data: req.toJson());
 
       final body = response.data;
-      final citizenId = response.data['citizen_id'];
-      if (citizenId != null) {
-        await _secureStorage.write(key: 'citizen', value: citizenId.toString());
-      }
       final registerResponse = RegisterResponse.fromJson(
         Map<String, dynamic>.from(body),
       );
 
+      final citizenId = registerResponse.data?.citizenId;
+      if (citizenId != null) {
+        await _secureStorage.write(
+          key: 'citizen_id',
+          value: citizenId.toString(),
+        );
+      }
+
       return registerResponse;
     } on ApiException catch (e) {
       Get.snackbar(
-        'خطأ',
+        'error'.tr,
         e.message,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -50,7 +54,7 @@ class RegisterController extends GetxController {
       return null;
     } catch (e) {
       Get.snackbar(
-        'خطأ غير متوقع',
+        'error'.tr,
         e.toString(),
         backgroundColor: Colors.red,
         colorText: Colors.white,

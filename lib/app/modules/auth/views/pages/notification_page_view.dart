@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:goverment_complaints/app/services/theme_service.dart';
 
 class NotificationsView extends StatefulWidget {
   const NotificationsView({super.key});
@@ -8,7 +10,8 @@ class NotificationsView extends StatefulWidget {
   State<NotificationsView> createState() => _NotificationsViewState();
 }
 
-class _NotificationsViewState extends State<NotificationsView> with SingleTickerProviderStateMixin {
+class _NotificationsViewState extends State<NotificationsView>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -72,21 +75,16 @@ class _NotificationsViewState extends State<NotificationsView> with SingleTicker
       duration: const Duration(milliseconds: 1200),
     );
 
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
 
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, -0.5),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.elasticOut,
-    ));
+    ).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
+    );
 
     // تأخير بسيط لضمان تحميل الواجهة أولاً
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -142,7 +140,7 @@ class _NotificationsViewState extends State<NotificationsView> with SingleTicker
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF002623),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -152,12 +150,15 @@ class _NotificationsViewState extends State<NotificationsView> with SingleTicker
               child: FadeTransition(
                 opacity: _fadeAnimation,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 12.h,
+                  ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF002623),
+                    color: Theme.of(context).scaffoldBackgroundColor,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
+                        color: Colors.black.withOpacity(0.1),
                         blurRadius: 10,
                         offset: const Offset(0, 2),
                       ),
@@ -167,26 +168,26 @@ class _NotificationsViewState extends State<NotificationsView> with SingleTicker
                     children: [
                       IconButton(
                         onPressed: () => Get.back(),
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.arrow_back_ios,
-                          color: Color(0xFFb9a779),
+                          color: Theme.of(context).primaryColor,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      const Text(
+                      SizedBox(width: 8.w),
+                      Text(
                         "الإشعارات",
                         style: TextStyle(
-                          fontSize: 24,
+                          fontSize: 24.sp,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFFb9a779),
+                          color: Theme.of(context).primaryColor,
                         ),
                       ),
                       const Spacer(),
                       IconButton(
                         onPressed: () {},
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.delete_outline,
-                          color: Color(0xFFb9a779),
+                          color: Theme.of(context).primaryColor,
                         ),
                       ),
                     ],
@@ -203,32 +204,31 @@ class _NotificationsViewState extends State<NotificationsView> with SingleTicker
                   physics: const BouncingScrollPhysics(),
                   slivers: [
                     SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                          if (index >= notifications.length * 2) return null;
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        if (index >= notifications.length * 2) return null;
 
-                          if (index.isEven) {
-                            final itemIndex = index ~/ 2;
-                            final notification = notifications[itemIndex];
-                            final isFirstInDate = itemIndex == 0 ||
-                                notifications[itemIndex - 1].date != notification.date;
+                        if (index.isEven) {
+                          final itemIndex = index ~/ 2;
+                          final notification = notifications[itemIndex];
+                          final isFirstInDate =
+                              itemIndex == 0 ||
+                              notifications[itemIndex - 1].date !=
+                                  notification.date;
 
-                            return Column(
-                              children: [
-                                // عنوان التاريخ
-                                if (isFirstInDate)
-                                  _buildDateHeader(notification.date, itemIndex),
+                          return Column(
+                            children: [
+                              // عنوان التاريخ
+                              if (isFirstInDate)
+                                _buildDateHeader(notification.date, itemIndex),
 
-                                // بطاقة الإشعار
-                                _buildNotificationCard(notification, itemIndex),
-                              ],
-                            );
-                          } else {
-                            return const SizedBox(height: 12);
-                          }
-                        },
-                        childCount: notifications.length * 2,
-                      ),
+                              // بطاقة الإشعار
+                              _buildNotificationCard(notification, itemIndex),
+                            ],
+                          );
+                        } else {
+                          return const SizedBox(height: 12);
+                        }
+                      }, childCount: notifications.length * 2),
                     ),
                   ],
                 ),
@@ -251,20 +251,22 @@ class _NotificationsViewState extends State<NotificationsView> with SingleTicker
           position: Tween<Offset>(
             begin: const Offset(-1, 0),
             end: Offset.zero,
-          ).animate(CurvedAnimation(
-            parent: _animationController,
-            curve: Interval(
-              0.1 + (index * 0.1),
-              1.0,
-              curve: Curves.easeOutBack,
+          ).animate(
+            CurvedAnimation(
+              parent: _animationController,
+              curve: Interval(
+                0.1 + (index * 0.1),
+                1.0,
+                curve: Curves.easeOutBack,
+              ),
             ),
-          )),
+          ),
           child: Text(
             date,
-            style: const TextStyle(
-              fontSize: 18,
+            style: TextStyle(
+              fontSize: 18.sp,
               fontWeight: FontWeight.bold,
-              color: Color(0xFFb9a779),
+              color: Theme.of(context).primaryColor,
             ),
           ),
         ),
@@ -285,29 +287,30 @@ class _NotificationsViewState extends State<NotificationsView> with SingleTicker
           position: Tween<Offset>(
             begin: const Offset(1, 0),
             end: Offset.zero,
-          ).animate(CurvedAnimation(
-            parent: _animationController,
-            curve: Interval(
-              0.2 + (index * 0.1),
-              1.0,
-              curve: Curves.easeOutBack,
-            ),
-          )),
-          child: ScaleTransition(
-            scale: Tween<double>(
-              begin: 0.8,
-              end: 1.0,
-            ).animate(CurvedAnimation(
+          ).animate(
+            CurvedAnimation(
               parent: _animationController,
               curve: Interval(
-                0.3 + (index * 0.1),
+                0.2 + (index * 0.1),
                 1.0,
-                curve: Curves.elasticOut,
+                curve: Curves.easeOutBack,
               ),
-            )),
+            ),
+          ),
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.8, end: 1.0).animate(
+              CurvedAnimation(
+                parent: _animationController,
+                curve: Interval(
+                  0.3 + (index * 0.1),
+                  1.0,
+                  curve: Curves.elasticOut,
+                ),
+              ),
+            ),
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF003832),
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: statusColor.withOpacity(0.3),
@@ -329,7 +332,7 @@ class _NotificationsViewState extends State<NotificationsView> with SingleTicker
                   highlightColor: statusColor.withOpacity(0.1),
                   splashColor: statusColor.withOpacity(0.2),
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(16.w),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -349,7 +352,7 @@ class _NotificationsViewState extends State<NotificationsView> with SingleTicker
                           child: Icon(
                             _getStatusIcon(notification.status),
                             color: statusColor,
-                            size: 24,
+                            size: 24.r,
                           ),
                         ),
 
@@ -366,44 +369,56 @@ class _NotificationsViewState extends State<NotificationsView> with SingleTicker
                                   Expanded(
                                     child: Text(
                                       notification.title,
-                                      style: const TextStyle(
-                                        fontSize: 16,
+                                      style: TextStyle(
+                                        fontSize: 16.sp,
                                         fontWeight: FontWeight.bold,
-                                        color: Color(0xFFedebe0),
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).textTheme.bodyMedium?.color,
                                       ),
                                     ),
                                   ),
                                   Text(
                                     notification.time,
                                     style: TextStyle(
-                                      fontSize: 12,
-                                      color: const Color(0xFFb9a779).withOpacity(0.7),
+                                      fontSize: 12.sp,
+                                      color: Theme.of(
+                                        context,
+                                      ).primaryColor.withOpacity(0.7),
                                     ),
                                   ),
                                 ],
                               ),
 
-                              const SizedBox(height: 6),
+                              SizedBox(height: 6.h),
 
                               // الرسالة
                               Text(
                                 notification.message,
                                 style: TextStyle(
-                                  fontSize: 14,
-                                  color: const Color(0xFFedebe0).withOpacity(0.8),
+                                  fontSize: 14.sp,
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.color
+                                      ?.withOpacity(0.8),
                                   height: 1.4,
                                 ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
 
-                              const SizedBox(height: 8),
+                              SizedBox(height: 8.h),
 
                               // حالة الإشعار
                               AnimatedContainer(
                                 duration: const Duration(milliseconds: 400),
                                 curve: Curves.easeOut,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12.w,
+                                  vertical: 4.h,
+                                ),
                                 decoration: BoxDecoration(
                                   color: statusColor.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(20),
@@ -414,7 +429,7 @@ class _NotificationsViewState extends State<NotificationsView> with SingleTicker
                                 child: Text(
                                   _getStatusText(notification.status),
                                   style: TextStyle(
-                                    fontSize: 12,
+                                    fontSize: 12.sp,
                                     fontWeight: FontWeight.bold,
                                     color: statusColor,
                                   ),
@@ -453,10 +468,12 @@ class _NotificationDetailsSheet extends StatefulWidget {
   const _NotificationDetailsSheet({required this.notification});
 
   @override
-  State<_NotificationDetailsSheet> createState() => _NotificationDetailsSheetState();
+  State<_NotificationDetailsSheet> createState() =>
+      _NotificationDetailsSheetState();
 }
 
-class _NotificationDetailsSheetState extends State<_NotificationDetailsSheet> with SingleTickerProviderStateMixin {
+class _NotificationDetailsSheetState extends State<_NotificationDetailsSheet>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _opacityAnimation;
   late Animation<double> _scaleAnimation;
@@ -473,26 +490,17 @@ class _NotificationDetailsSheetState extends State<_NotificationDetailsSheet> wi
     _opacityAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
 
     _scaleAnimation = Tween<double>(
       begin: 0.8,
       end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.elasticOut,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.elasticOut));
 
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 1),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutBack,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
     _controller.forward();
   }
@@ -555,12 +563,9 @@ class _NotificationDetailsSheetState extends State<_NotificationDetailsSheet> wi
           child: Container(
             margin: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF003832),
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: statusColor,
-                width: 2,
-              ),
+              border: Border.all(color: statusColor, width: 2),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.4),
@@ -594,18 +599,19 @@ class _NotificationDetailsSheetState extends State<_NotificationDetailsSheet> wi
                       Expanded(
                         child: Text(
                           widget.notification.title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFFedebe0),
+                            color:
+                                Theme.of(context).textTheme.bodyMedium?.color,
                           ),
                         ),
                       ),
                       IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.close,
-                          color: Color(0xFFb9a779),
+                          color: Theme.of(context).primaryColor,
                         ),
                       ),
                     ],
@@ -618,7 +624,9 @@ class _NotificationDetailsSheetState extends State<_NotificationDetailsSheet> wi
                     widget.notification.message,
                     style: TextStyle(
                       fontSize: 16,
-                      color: const Color(0xFFedebe0).withOpacity(0.9),
+                      color: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.color?.withOpacity(0.9),
                       height: 1.5,
                     ),
                   ),
@@ -629,7 +637,7 @@ class _NotificationDetailsSheetState extends State<_NotificationDetailsSheet> wi
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF002623),
+                      color: Theme.of(context).scaffoldBackgroundColor,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -640,26 +648,31 @@ class _NotificationDetailsSheetState extends State<_NotificationDetailsSheet> wi
                             Text(
                               'الوقت: ${widget.notification.time}',
                               style: TextStyle(
-                                color: const Color(0xFFb9a779).withOpacity(0.8),
+                                color: Theme.of(
+                                  context,
+                                ).primaryColor.withOpacity(0.8),
                               ),
                             ),
                             Text(
                               'التاريخ: ${widget.notification.date}',
                               style: TextStyle(
-                                color: const Color(0xFFb9a779).withOpacity(0.8),
+                                color: Theme.of(
+                                  context,
+                                ).primaryColor.withOpacity(0.8),
                               ),
                             ),
                           ],
                         ),
                         const Spacer(),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: statusColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: statusColor,
-                            ),
+                            border: Border.all(color: statusColor),
                           ),
                           child: Text(
                             _getStatusText(widget.notification.status),
@@ -682,7 +695,7 @@ class _NotificationDetailsSheetState extends State<_NotificationDetailsSheet> wi
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFb9a779),
+                        backgroundColor: Theme.of(context).primaryColor,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -725,9 +738,4 @@ class NotificationItem {
   });
 }
 
-enum NotificationStatus {
-  newStatus,
-  inProgress,
-  rejected,
-  completed,
-}
+enum NotificationStatus { newStatus, inProgress, rejected, completed }

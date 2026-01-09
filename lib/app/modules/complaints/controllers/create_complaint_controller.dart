@@ -12,9 +12,6 @@ class CreateComplaintController extends GetxController {
   final RxString selectedEntity = ''.obs;
   final RxString selectedLocation = ''.obs;
 
-  // final TextEditingController typeCtrl = TextEditingController();
-  // final TextEditingController entityCtrl = TextEditingController();
-  // final TextEditingController locationCtrl = TextEditingController();
   final TextEditingController descriptionCtrl = TextEditingController();
 
   final RxList<PlatformFile> attachments = <PlatformFile>[].obs;
@@ -71,16 +68,16 @@ class CreateComplaintController extends GetxController {
 
       if (skipped > 0) {
         Get.snackbar(
-          'ملاحظة',
-          '$skipped ملف/ملفات تم تجاهلها لأنها مكررة',
+          'note'.tr,
+          'files_skipped'.trParams({'count': skipped.toString()}),
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
       }
     } catch (e) {
       Get.snackbar(
-        'خطأ',
-        'تعذر اختيار الملفات',
+        'error'.tr,
+        'pick_files_error'.tr,
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -102,8 +99,8 @@ class CreateComplaintController extends GetxController {
         location.isEmpty ||
         description.isEmpty) {
       Get.snackbar(
-        'خطأ',
-        'الرجاء تعبئة جميع الحقول المطلوبة',
+        'error'.tr,
+        'fill_all_fields'.tr,
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -139,7 +136,7 @@ class CreateComplaintController extends GetxController {
         final parsed = ComplaintSubmitResponse.fromJson(body);
         if (parsed.status.toLowerCase() == 'success') {
           Get.snackbar(
-            'نجاح',
+            'success'.tr,
             parsed.message,
             backgroundColor: Color(0xFFb9a779),
             colorText: Colors.white,
@@ -147,7 +144,7 @@ class CreateComplaintController extends GetxController {
           return parsed;
         } else {
           Get.snackbar(
-            'فشل',
+            'failed'.tr,
             parsed.message,
             backgroundColor: Colors.red,
             colorText: Colors.white,
@@ -156,8 +153,8 @@ class CreateComplaintController extends GetxController {
         }
       } else {
         Get.snackbar(
-          'خطأ',
-          'رد غير متوقع من الخادم',
+          'error'.tr,
+          'unexpected_response'.tr,
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
@@ -165,7 +162,7 @@ class CreateComplaintController extends GetxController {
       }
     } on ApiException catch (e) {
       Get.snackbar(
-        'خطأ',
+        'error'.tr,
         e.message,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -173,7 +170,7 @@ class CreateComplaintController extends GetxController {
       return null;
     } catch (e) {
       Get.snackbar(
-        'خطأ',
+        'error'.tr,
         e.toString(),
         backgroundColor: Colors.red,
         colorText: Colors.white,

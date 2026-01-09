@@ -12,6 +12,55 @@ class VerifyOtpController extends GetxController {
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   var isLoading = false.obs;
+  var resendLoading = false.obs;
+
+  Future<bool> resendOtp(int citizenId) async {
+    resendLoading.value = true;
+    try {
+      final response = await _api.post(
+        'resend-otp',
+        data: {'citizen_id': citizenId},
+      );
+
+      final body = response.data;
+      if (body is Map<String, dynamic> &&
+          body['status'].toString().toLowerCase() == 'success') {
+        Get.snackbar(
+          'success'.tr,
+          body['message'] ?? 'otp_sent'.tr,
+          backgroundColor: const Color(0xFFb9a779),
+          colorText: Colors.white,
+        );
+        return true;
+      } else {
+        Get.snackbar(
+          'failed'.tr,
+          body['message'] ?? 'failed_otp_sent'.tr,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return false;
+      }
+    } on ApiException catch (e) {
+      Get.snackbar(
+        'error'.tr,
+        e.message,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
+    } catch (e) {
+      Get.snackbar(
+        'error'.tr,
+        e.toString(),
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
+    } finally {
+      resendLoading.value = false;
+    }
+  }
 
   Future<VerifyOtpResponse?> verifyOtp(VerifyOtpRequest req) async {
     isLoading.value = true;
@@ -36,12 +85,16 @@ class VerifyOtpController extends GetxController {
           key: 'citizen',
           value: jsonEncode(citizen.toJson()),
         );
+        await _secureStorage.write(
+          key: 'citizen_id',
+          value: citizen.id.toString(),
+        );
       }
 
       return verifyResp;
     } on ApiException catch (e) {
       Get.snackbar(
-        'خطأ',
+        'error'.tr,
         e.message,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -49,7 +102,7 @@ class VerifyOtpController extends GetxController {
       return null;
     } catch (e) {
       Get.snackbar(
-        'خطأ غير متوقع',
+        'error'.tr,
         e.toString(),
         backgroundColor: Colors.red,
         colorText: Colors.white,

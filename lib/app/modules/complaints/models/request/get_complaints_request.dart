@@ -1,4 +1,3 @@
-// modules/complaints/models/request/get_user_complaints_request.dart
 class GetUserComplaintsRequest {
   final int citizenId;
 

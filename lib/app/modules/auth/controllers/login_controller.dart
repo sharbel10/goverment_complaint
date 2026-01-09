@@ -45,7 +45,7 @@ class LoginController extends GetxController {
       return loginResp;
     } on ApiException catch (e) {
       Get.snackbar(
-        'خطأ',
+        'error'.tr,
         e.message,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -53,7 +53,7 @@ class LoginController extends GetxController {
       return null;
     } catch (e) {
       Get.snackbar(
-        'خطأ غير متوقع',
+        "error".tr,
         e.toString(),
         backgroundColor: Colors.red,
         colorText: Colors.white,

@@ -34,7 +34,7 @@ class UserComplaintsController extends GetxController {
           return true;
         } else {
           Get.snackbar(
-            'فشل',
+            'failed'.tr,
             parsed.message,
             backgroundColor: Colors.red,
             colorText: Colors.white,
@@ -43,8 +43,8 @@ class UserComplaintsController extends GetxController {
         }
       } else {
         Get.snackbar(
-          'خطأ',
-          'رد غير متوقع من الخادم',
+          'error'.tr,
+          'unexpected_response'.tr,
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
@@ -52,7 +52,7 @@ class UserComplaintsController extends GetxController {
       }
     } on ApiException catch (e) {
       Get.snackbar(
-        'خطأ',
+        'error'.tr,
         e.message,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -60,7 +60,7 @@ class UserComplaintsController extends GetxController {
       return false;
     } catch (e) {
       Get.snackbar(
-        'خطأ غير متوقع',
+        'unexpected_error'.tr,
         e.toString(),
         backgroundColor: Colors.red,
         colorText: Colors.white,

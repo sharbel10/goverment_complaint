@@ -1,11 +1,11 @@
 import 'package:get/get_navigation/src/routes/get_route.dart';
+import 'package:goverment_complaints/app/modules/auth/views/pages/login_page_view.dart';
+import 'package:goverment_complaints/app/modules/auth/views/pages/otp_page_view.dart';
+import 'package:goverment_complaints/app/modules/auth/views/pages/register_page_view.dart';
 import 'package:goverment_complaints/app/modules/complaints/bindings/complaints_bindings.dart';
-import 'package:goverment_complaints/app/modules/complaints/views/create_complaints_page_view.dart';
-import 'package:goverment_complaints/app/modules/auth/views/otp_page_view.dart';
-import 'package:goverment_complaints/app/modules/auth/views/register_page_view.dart';
+import 'package:goverment_complaints/app/modules/complaints/views/pages/create_complaints_page_view.dart';
 
 import '../modules/auth/bindings/auth_bindings.dart';
-import '../modules/auth/views/login_page_view.dart';
 import 'app_routes.dart';
 
 class AppPages {
