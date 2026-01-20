@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:goverment_complaints/app/services/theme_service.dart';
+import 'package:get/get.dart';
+import 'package:goverment_complaints/app/modules/notifications/notifications_controller.dart';
+import 'package:goverment_complaints/app/modules/notifications/models/app_notifications.dart';
+import 'package:goverment_complaints/app/routes/app_routes.dart';
 
 class NotificationsView extends StatefulWidget {
   const NotificationsView({super.key});
@@ -16,60 +18,13 @@ class _NotificationsViewState extends State<NotificationsView>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
-  final List<NotificationItem> notifications = [
-    NotificationItem(
-      id: '1',
-      title: 'تم تقديم شكوى جديدة',
-      message: 'تم استلام شكوى بخصوص خدمات البلدية في منطقة المزة',
-      time: '10:30 ص',
-      date: 'اليوم',
-      status: NotificationStatus.newStatus,
-    ),
-    NotificationItem(
-      id: '2',
-      title: 'الشكوى قيد المعالجة',
-      message: 'تم تحويل الشكوى رقم #12345 إلى قسم الخدمات الفنية',
-      time: '09:15 ص',
-      date: 'اليوم',
-      status: NotificationStatus.inProgress,
-    ),
-    NotificationItem(
-      id: '3',
-      title: 'تم رفض الشكوى',
-      message: 'تم رفض الشكوى رقم #12344 بسبب عدم اكتمال المعلومات',
-      time: '05:20 م',
-      date: 'أمس',
-      status: NotificationStatus.rejected,
-    ),
-    NotificationItem(
-      id: '4',
-      title: 'شكوى منجزة',
-      message: 'تم حل الشكوى رقم #12343 بنجاح وإغلاق الملف',
-      time: '11:45 ص',
-      date: 'أمس',
-      status: NotificationStatus.completed,
-    ),
-    NotificationItem(
-      id: '5',
-      title: 'تحديث حالة الشكوى',
-      message: 'تم نقل الشكوى إلى مرحلة التحقيق الميداني',
-      time: '10:30 ص',
-      date: 'هذا الأسبوع',
-      status: NotificationStatus.inProgress,
-    ),
-    NotificationItem(
-      id: '6',
-      title: 'شكوى جديدة',
-      message: 'تم استلام شكوى بخصوص النظافة في منطقة الشعلان',
-      time: 'الاثنين',
-      date: 'هذا الأسبوع',
-      status: NotificationStatus.newStatus,
-    ),
-  ];
+  late final NotificationsController _ctrl;
 
   @override
   void initState() {
     super.initState();
+    _ctrl = Get.find<NotificationsController>();
+
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -86,7 +41,6 @@ class _NotificationsViewState extends State<NotificationsView>
       CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
     );
 
-    // تأخير بسيط لضمان تحميل الواجهة أولاً
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _animationController.forward();
     });
@@ -137,6 +91,76 @@ class _NotificationsViewState extends State<NotificationsView>
     }
   }
 
+  NotificationStatus _mapStatusFromData(AppNotification n) {
+    final raw = (n.data['status'] ?? n.data['type'] ?? '').toString();
+    final s = raw.toLowerCase();
+
+    if (s.contains('rejected')) return NotificationStatus.rejected;
+    if (s.contains('completed')) return NotificationStatus.completed;
+    if (s.contains('processing') || s.contains('in_progress')) {
+      return NotificationStatus.inProgress;
+    }
+    return NotificationStatus.newStatus;
+  }
+
+  String _headerForMs(int ms) {
+    final dt = DateTime.fromMillisecondsSinceEpoch(ms);
+    final now = DateTime.now();
+
+    bool sameDay(DateTime a, DateTime b) =>
+        a.year == b.year && a.month == b.month && a.day == b.day;
+
+    final yesterday = now.subtract(const Duration(days: 1));
+    if (sameDay(dt, now)) return 'اليوم';
+    if (sameDay(dt, yesterday)) return 'أمس';
+
+    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    if (dt.isAfter(DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day))) {
+      return 'هذا الأسبوع';
+    }
+
+    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+  }
+
+  String _timeForMs(int ms) {
+    final dt = DateTime.fromMillisecondsSinceEpoch(ms);
+    final h = dt.hour;
+    final m = dt.minute.toString().padLeft(2, '0');
+
+    final isAm = h < 12;
+    final hour12 = (h == 0) ? 12 : (h > 12 ? h - 12 : h);
+    final ampm = isAm ? 'ص' : 'م';
+    return '$hour12:$m $ampm';
+  }
+
+  List<_UiNotification> _toUi(List<AppNotification> list) {
+    return list.map((n) {
+      final status = _mapStatusFromData(n);
+      return _UiNotification(
+        id: n.id,
+        title: n.title,
+        message: n.body,
+        time: _timeForMs(n.createdAtMs),
+        dateHeader: _headerForMs(n.createdAtMs),
+        status: status,
+        isRead: n.isRead,
+        data: n.data,
+      );
+    }).toList();
+  }
+
+  void _openNotificationSheet(_UiNotification notification) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _NotificationDetailsSheet(notification: notification),
+    );
+  }
+
+  bool _routeExists(String name) =>
+      Get.routeTree.routes.any((r) => r.name == name);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -150,10 +174,7 @@ class _NotificationsViewState extends State<NotificationsView>
               child: FadeTransition(
                 opacity: _fadeAnimation,
                 child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 12.h,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
                   decoration: BoxDecoration(
                     color: Theme.of(context).scaffoldBackgroundColor,
                     boxShadow: [
@@ -167,12 +188,13 @@ class _NotificationsViewState extends State<NotificationsView>
                   child: Row(
                     children: [
                       IconButton(
-                        onPressed: () => Get.back(),
+                        onPressed: () => Navigator.of(context).maybePop(),
                         icon: Icon(
                           Icons.arrow_back_ios,
                           color: Theme.of(context).primaryColor,
                         ),
                       ),
+
                       SizedBox(width: 8.w),
                       Text(
                         "الإشعارات",
@@ -184,7 +206,7 @@ class _NotificationsViewState extends State<NotificationsView>
                       ),
                       const Spacer(),
                       IconButton(
-                        onPressed: () {},
+                        onPressed: _ctrl.clearAll,
                         icon: Icon(
                           Icons.delete_outline,
                           color: Theme.of(context).primaryColor,
@@ -196,43 +218,55 @@ class _NotificationsViewState extends State<NotificationsView>
               ),
             ),
 
-            // قائمة الإشعارات
+            // List
             Expanded(
-              child: NotificationListener<ScrollNotification>(
-                onNotification: (scrollNotification) => true,
-                child: CustomScrollView(
+              child: Obx(() {
+                final ui = _toUi(_ctrl.items);
+
+                if (ui.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'لا يوجد إشعارات بعد',
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        color: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.color
+                            ?.withOpacity(0.8),
+                      ),
+                    ),
+                  );
+                }
+
+                return CustomScrollView(
                   physics: const BouncingScrollPhysics(),
                   slivers: [
                     SliverList(
                       delegate: SliverChildBuilderDelegate((context, index) {
-                        if (index >= notifications.length * 2) return null;
+                        if (index >= ui.length * 2) return null;
 
                         if (index.isEven) {
                           final itemIndex = index ~/ 2;
-                          final notification = notifications[itemIndex];
-                          final isFirstInDate =
-                              itemIndex == 0 ||
-                              notifications[itemIndex - 1].date !=
-                                  notification.date;
+                          final n = ui[itemIndex];
+                          final isFirstInDate = itemIndex == 0 ||
+                              ui[itemIndex - 1].dateHeader != n.dateHeader;
 
                           return Column(
                             children: [
-                              // عنوان التاريخ
                               if (isFirstInDate)
-                                _buildDateHeader(notification.date, itemIndex),
-
-                              // بطاقة الإشعار
-                              _buildNotificationCard(notification, itemIndex),
+                                _buildDateHeader(n.dateHeader, itemIndex),
+                              _buildNotificationCard(n, itemIndex),
                             ],
                           );
                         } else {
                           return const SizedBox(height: 12);
                         }
-                      }, childCount: notifications.length * 2),
+                      }, childCount: ui.length * 2),
                     ),
                   ],
-                ),
-              ),
+                );
+              }),
             ),
           ],
         ),
@@ -248,10 +282,8 @@ class _NotificationsViewState extends State<NotificationsView>
       child: FadeTransition(
         opacity: _fadeAnimation,
         child: SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(-1, 0),
-            end: Offset.zero,
-          ).animate(
+          position: Tween<Offset>(begin: const Offset(-1, 0), end: Offset.zero)
+              .animate(
             CurvedAnimation(
               parent: _animationController,
               curve: Interval(
@@ -274,8 +306,8 @@ class _NotificationsViewState extends State<NotificationsView>
     );
   }
 
-  Widget _buildNotificationCard(NotificationItem notification, int index) {
-    final statusColor = _getStatusColor(notification.status);
+  Widget _buildNotificationCard(_UiNotification n, int index) {
+    final statusColor = _getStatusColor(n.status);
 
     return AnimatedContainer(
       duration: Duration(milliseconds: 500 + (index * 100)),
@@ -284,10 +316,8 @@ class _NotificationsViewState extends State<NotificationsView>
       child: FadeTransition(
         opacity: _fadeAnimation,
         child: SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(1, 0),
-            end: Offset.zero,
-          ).animate(
+          position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
+              .animate(
             CurvedAnimation(
               parent: _animationController,
               curve: Interval(
@@ -328,7 +358,19 @@ class _NotificationsViewState extends State<NotificationsView>
                 color: Colors.transparent,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(16),
-                  onTap: () => _showNotificationDetails(notification),
+                  onTap: () {
+                    _ctrl.markRead(n.id);
+
+                    final rawId = n.data['complaint_id'];
+                    final complaintId = int.tryParse(rawId?.toString() ?? '');
+
+                    if (complaintId != null && _routeExists(AppRoutes.complaintDetails)) {
+                      Get.toNamed(AppRoutes.complaintDetails, arguments: complaintId);
+                      return;
+                    }
+
+                    _openNotificationSheet(n);
+                  },
                   highlightColor: statusColor.withOpacity(0.1),
                   splashColor: statusColor.withOpacity(0.2),
                   child: Padding(
@@ -336,7 +378,6 @@ class _NotificationsViewState extends State<NotificationsView>
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // أيقونة الحالة
                         AnimatedContainer(
                           duration: const Duration(milliseconds: 500),
                           curve: Curves.elasticOut,
@@ -350,52 +391,47 @@ class _NotificationsViewState extends State<NotificationsView>
                             ),
                           ),
                           child: Icon(
-                            _getStatusIcon(notification.status),
+                            _getStatusIcon(n.status),
                             color: statusColor,
                             size: 24.r,
                           ),
                         ),
-
                         const SizedBox(width: 12),
-
-                        // محتوى الإشعار
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // العنوان والوقت
                               Row(
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      notification.title,
+                                      n.title,
                                       style: TextStyle(
                                         fontSize: 16.sp,
-                                        fontWeight: FontWeight.bold,
-                                        color:
-                                            Theme.of(
-                                              context,
-                                            ).textTheme.bodyMedium?.color,
+                                        fontWeight: n.isRead
+                                            ? FontWeight.w600
+                                            : FontWeight.bold,
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.color,
                                       ),
                                     ),
                                   ),
                                   Text(
-                                    notification.time,
+                                    n.time,
                                     style: TextStyle(
                                       fontSize: 12.sp,
-                                      color: Theme.of(
-                                        context,
-                                      ).primaryColor.withOpacity(0.7),
+                                      color: Theme.of(context)
+                                          .primaryColor
+                                          .withOpacity(0.7),
                                     ),
                                   ),
                                 ],
                               ),
-
                               SizedBox(height: 6.h),
-
-                              // الرسالة
                               Text(
-                                notification.message,
+                                n.message,
                                 style: TextStyle(
                                   fontSize: 14.sp,
                                   color: Theme.of(context)
@@ -408,32 +444,43 @@ class _NotificationsViewState extends State<NotificationsView>
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
-
                               SizedBox(height: 8.h),
-
-                              // حالة الإشعار
-                              AnimatedContainer(
-                                duration: const Duration(milliseconds: 400),
-                                curve: Curves.easeOut,
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 12.w,
-                                  vertical: 4.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: statusColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: statusColor.withOpacity(0.3),
+                              Row(
+                                children: [
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 400),
+                                    curve: Curves.easeOut,
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 12.w,
+                                      vertical: 4.h,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: statusColor.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: statusColor.withOpacity(0.3),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      _getStatusText(n.status),
+                                      style: TextStyle(
+                                        fontSize: 12.sp,
+                                        fontWeight: FontWeight.bold,
+                                        color: statusColor,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                                child: Text(
-                                  _getStatusText(notification.status),
-                                  style: TextStyle(
-                                    fontSize: 12.sp,
-                                    fontWeight: FontWeight.bold,
-                                    color: statusColor,
-                                  ),
-                                ),
+                                  const Spacer(),
+                                  if (!n.isRead)
+                                    Container(
+                                      width: 10,
+                                      height: 10,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Theme.of(context).primaryColor,
+                                      ),
+                                    ),
+                                ],
                               ),
                             ],
                           ),
@@ -449,22 +496,10 @@ class _NotificationsViewState extends State<NotificationsView>
       ),
     );
   }
-
-  void _showNotificationDetails(NotificationItem notification) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        return _NotificationDetailsSheet(notification: notification);
-      },
-    );
-  }
 }
 
 class _NotificationDetailsSheet extends StatefulWidget {
-  final NotificationItem notification;
-
+  final _UiNotification notification;
   const _NotificationDetailsSheet({required this.notification});
 
   @override
@@ -487,20 +522,16 @@ class _NotificationDetailsSheetState extends State<_NotificationDetailsSheet>
       vsync: this,
     );
 
-    _opacityAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
 
-    _scaleAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.elasticOut));
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.elasticOut),
+    );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+    _slideAnimation = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
     _controller.forward();
   }
@@ -511,8 +542,8 @@ class _NotificationDetailsSheetState extends State<_NotificationDetailsSheet>
     super.dispose();
   }
 
-  Color _getStatusColor(NotificationStatus status) {
-    switch (status) {
+  Color _statusColorFrom(_UiNotification notification) {
+    switch (notification.status) {
       case NotificationStatus.newStatus:
         return const Color(0xFF4FC3F7);
       case NotificationStatus.inProgress:
@@ -524,8 +555,8 @@ class _NotificationDetailsSheetState extends State<_NotificationDetailsSheet>
     }
   }
 
-  IconData _getStatusIcon(NotificationStatus status) {
-    switch (status) {
+  IconData _statusIconFrom(_UiNotification notification) {
+    switch (notification.status) {
       case NotificationStatus.newStatus:
         return Icons.fiber_new_rounded;
       case NotificationStatus.inProgress:
@@ -537,8 +568,8 @@ class _NotificationDetailsSheetState extends State<_NotificationDetailsSheet>
     }
   }
 
-  String _getStatusText(NotificationStatus status) {
-    switch (status) {
+  String _statusTextFrom(_UiNotification notification) {
+    switch (notification.status) {
       case NotificationStatus.newStatus:
         return 'جديدة';
       case NotificationStatus.inProgress:
@@ -552,7 +583,7 @@ class _NotificationDetailsSheetState extends State<_NotificationDetailsSheet>
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = _getStatusColor(widget.notification.status);
+    final statusColor = _statusColorFrom(widget.notification);
 
     return SlideTransition(
       position: _slideAnimation,
@@ -580,7 +611,6 @@ class _NotificationDetailsSheetState extends State<_NotificationDetailsSheet>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // الرأس
                   Row(
                     children: [
                       Container(
@@ -590,7 +620,7 @@ class _NotificationDetailsSheetState extends State<_NotificationDetailsSheet>
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          _getStatusIcon(widget.notification.status),
+                          _statusIconFrom(widget.notification),
                           color: statusColor,
                           size: 28,
                         ),
@@ -602,8 +632,7 @@ class _NotificationDetailsSheetState extends State<_NotificationDetailsSheet>
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color:
-                                Theme.of(context).textTheme.bodyMedium?.color,
+                            color: Theme.of(context).textTheme.bodyMedium?.color,
                           ),
                         ),
                       ),
@@ -616,24 +645,20 @@ class _NotificationDetailsSheetState extends State<_NotificationDetailsSheet>
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 16),
-
-                  // المحتوى
                   Text(
                     widget.notification.message,
                     style: TextStyle(
                       fontSize: 16,
-                      color: Theme.of(
-                        context,
-                      ).textTheme.bodyMedium?.color?.withOpacity(0.9),
+                      color: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.color
+                          ?.withOpacity(0.9),
                       height: 1.5,
                     ),
                   ),
-
                   const SizedBox(height: 20),
-
-                  // التوقيت والحالة
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -648,17 +673,17 @@ class _NotificationDetailsSheetState extends State<_NotificationDetailsSheet>
                             Text(
                               'الوقت: ${widget.notification.time}',
                               style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).primaryColor.withOpacity(0.8),
+                                color: Theme.of(context)
+                                    .primaryColor
+                                    .withOpacity(0.8),
                               ),
                             ),
                             Text(
-                              'التاريخ: ${widget.notification.date}',
+                              'التاريخ: ${widget.notification.dateHeader}',
                               style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).primaryColor.withOpacity(0.8),
+                                color: Theme.of(context)
+                                    .primaryColor
+                                    .withOpacity(0.8),
                               ),
                             ),
                           ],
@@ -675,7 +700,7 @@ class _NotificationDetailsSheetState extends State<_NotificationDetailsSheet>
                             border: Border.all(color: statusColor),
                           ),
                           child: Text(
-                            _getStatusText(widget.notification.status),
+                            _statusTextFrom(widget.notification),
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: statusColor,
@@ -685,10 +710,7 @@ class _NotificationDetailsSheetState extends State<_NotificationDetailsSheet>
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 20),
-
-                  // زر الإغلاق
                   SizedBox(
                     width: double.infinity,
                     height: 50,
@@ -720,21 +742,25 @@ class _NotificationDetailsSheetState extends State<_NotificationDetailsSheet>
   }
 }
 
-class NotificationItem {
+class _UiNotification {
   final String id;
   final String title;
   final String message;
   final String time;
-  final String date;
+  final String dateHeader;
   final NotificationStatus status;
+  final bool isRead;
+  final Map<String, dynamic> data;
 
-  NotificationItem({
+  _UiNotification({
     required this.id,
     required this.title,
     required this.message,
     required this.time,
-    required this.date,
+    required this.dateHeader,
     required this.status,
+    required this.isRead,
+    required this.data,
   });
 }
 

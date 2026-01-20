@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:goverment_complaints/app/modules/auth/controllers/register_controller.dart';
 import 'package:goverment_complaints/app/routes/app_routes.dart';
+import 'package:goverment_complaints/app/utils/app_snackbar.dart';
 
 class RegisterForm extends StatelessWidget {
   final RegisterController controller;
@@ -120,44 +121,41 @@ class RegisterForm extends StatelessWidget {
             height: 52.h,
             child: Obx(() {
               return ElevatedButton(
-                onPressed:
-                    controller.isLoading.value
-                        ? null
-                        : () async {
-                          final resp = await controller.register();
-                          if (resp != null) {
-                            Get.snackbar(
-                              'success'.tr,
-                              'register_success'.tr,
-                              backgroundColor: Theme.of(context).primaryColor,
-                              colorText: Colors.white,
-                            );
-                            final citizenId = resp.data?.citizenId;
-                            Get.toNamed(
-                              AppRoutes.otp,
-                              arguments: {'citizen_id': citizenId},
-                            );
-                          }
-                        },
+                onPressed: controller.isLoading.value
+                    ? null
+                    : () async {
+                  final resp = await controller.register();
+                  if (resp != null) {
+                    showAppSnack(
+                      title: 'success'.tr,
+                      message: 'register_success'.tr,
+                      type: AppSnackType.success,
+                    );
+
+
+                    final citizenId = resp.data?.citizenId;
+                    Get.toNamed(
+                      AppRoutes.otp,
+                      arguments: {'citizen_id': citizenId},
+                    );
+                  }
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Theme.of(context).primaryColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14.r),
                   ),
                 ),
-                child:
-                    controller.isLoading.value
-                        ? CircularProgressIndicator(
-                          color: Theme.of(context).primaryColor,
-                        )
-                        : Text(
-                          'create_account'.tr,
-                          style: TextStyle(
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
+                child: controller.isLoading.value
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text(
+                  'create_account'.tr,
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
               );
             }),
           ),

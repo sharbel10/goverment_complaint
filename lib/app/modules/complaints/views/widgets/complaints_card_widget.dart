@@ -53,7 +53,7 @@ class ComplaintsCardWidget extends StatelessWidget {
                 'view_all_complaints'.tr,
                 style: TextStyle(
                   color: const Color(0xFFedebe0),
-                  fontSize: 16.sp,
+                  fontSize: 14.sp,
                   fontWeight: FontWeight.bold,
                 ),
               ),

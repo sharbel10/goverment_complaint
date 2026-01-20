@@ -4,12 +4,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:goverment_complaints/app/modules/auth/controllers/verify_otp_controller.dart';
 import 'package:goverment_complaints/app/modules/auth/models/request/otp_request_model.dart';
 import 'package:goverment_complaints/app/modules/auth/views/widgets/auth_logo.dart';
-import 'package:goverment_complaints/app/modules/auth/views/widgets/otp_count_down.dart';
 import 'package:goverment_complaints/app/modules/auth/views/widgets/otp_fields.dart';
 import 'package:goverment_complaints/app/modules/auth/views/widgets/otp_header.dart';
-import 'package:goverment_complaints/app/modules/auth/views/widgets/otp_resend_button.dart';
 import 'package:goverment_complaints/app/modules/auth/views/widgets/otp_verify_button.dart';
 import 'package:goverment_complaints/app/routes/app_routes.dart';
+import 'package:goverment_complaints/app/utils/app_snackbar.dart';
 
 class OTPVerificationView extends StatefulWidget {
   const OTPVerificationView({super.key});
@@ -26,7 +25,7 @@ class _OTPVerificationViewState extends State<OTPVerificationView>
 
   final List<TextEditingController> _controllers = List.generate(
     6,
-    (index) => TextEditingController(),
+        (index) => TextEditingController(),
   );
   final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
 
@@ -44,7 +43,7 @@ class _OTPVerificationViewState extends State<OTPVerificationView>
     final args = Get.arguments ?? {};
     final dynamic rawId = args['citizen_id'];
     _citizenId =
-        rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '') ?? 0;
+    rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '') ?? 0;
 
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 1000),
@@ -101,11 +100,10 @@ class _OTPVerificationViewState extends State<OTPVerificationView>
 
   Future<void> _resendOTP() async {
     if (_citizenId == 0) {
-      Get.snackbar(
-        'error'.tr,
-        'citizen_id_missing_resend'.tr,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
+      showAppSnack(
+        title: 'error'.tr,
+        message: 'citizen_id_missing_resend'.tr,
+        type: AppSnackType.error,
       );
       return;
     }
@@ -119,38 +117,43 @@ class _OTPVerificationViewState extends State<OTPVerificationView>
       _focusNodes[0].requestFocus();
     });
 
-    // // أنادي الكونترولر لإعادة الإرسال
+    // لما تفعّلها لاحقاً:
     // final ok = await _controller.resendOtp(_citizenId);
     // if (ok) {
-    //   // إعادة تشغيل العدّاد
+    //   showAppSnack(
+    //     title: 'done'.tr,
+    //     message: 'otp_resent'.tr, // إذا عندك key بالترجمة
+    //     type: AppSnackType.success,
+    //   );
     //   _startCountdown();
     //   _animationController.reset();
     //   _animationController.forward();
     // } else {
-    //   // إذا فشل أسمح بإعادة المحاولة على الفور أو بعد رسالة
-    //   setState(() {
-    //     _canResend = true;
-    //   });
+    //   showAppSnack(
+    //     title: 'failed'.tr,
+    //     message: 'resend_failed'.tr,
+    //     type: AppSnackType.error,
+    //   );
+    //   setState(() => _canResend = true);
     // }
   }
-
   Future<void> _verifyOTP() async {
-    String otp = _controllers.map((c) => c.text.trim()).join();
+    final otp = _controllers.map((c) => c.text.trim()).join();
+
     if (otp.length != 6) {
-      Get.snackbar(
-        'error'.tr,
-        'enter_6_digits'.tr,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
+      showAppSnack(
+        title: 'error'.tr,
+        message: 'enter_6_digits'.tr,
+        type: AppSnackType.error,
       );
       return;
     }
+
     if (_citizenId == 0) {
-      Get.snackbar(
-        'error'.tr,
-        'citizen_id_missing'.tr,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
+      showAppSnack(
+        title: 'error'.tr,
+        message: 'citizen_id_missing'.tr,
+        type: AppSnackType.error,
       );
       return;
     }
@@ -159,19 +162,17 @@ class _OTPVerificationViewState extends State<OTPVerificationView>
     final resp = await _controller.verifyOtp(req);
 
     if (resp != null && resp.status.toLowerCase() == 'success') {
-      Get.snackbar(
-        'done'.tr,
-        resp.message,
-        backgroundColor: Color(0xFFb9a779),
-        colorText: Colors.white,
+      showAppSnack(
+        title: 'done'.tr,
+        message: resp.message,
+        type: AppSnackType.success,
       );
       Get.offAllNamed(AppRoutes.home);
     } else {
-      Get.snackbar(
-        'failed'.tr,
-        resp?.message ?? 'verification_failed'.tr,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
+      showAppSnack(
+        title: 'failed'.tr,
+        message: resp?.message ?? 'verification_failed'.tr,
+        type: AppSnackType.error,
       );
     }
   }
@@ -204,23 +205,16 @@ class _OTPVerificationViewState extends State<OTPVerificationView>
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     SizedBox(height: 20.h),
-
                     AuthLogo(),
-
                     SizedBox(height: 30.h),
-
                     OTPHeader(),
-
                     SizedBox(height: 40.h),
-
                     OtpFields(
                       controllers: _controllers,
                       focusNodes: _focusNodes,
                       onComplete: _verifyOTP,
                     ),
-
                     SizedBox(height: 30.h),
-
                     Obx(() {
                       final isLoading = _controller.isLoading.value;
                       return OtpVerifyButton(

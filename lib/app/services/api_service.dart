@@ -1,31 +1,38 @@
 import 'dart:async';
 import 'dart:typed_data';
-import 'package:dio/dio.dart';
+
+import 'package:dio/dio.dart' as dio;
 import 'package:goverment_complaints/app/services/network_service.dart';
 
 class ApiService {
-  final Dio _dio;
+  final dio.Dio _dio;
   final NetworkService _network;
   String? _token;
 
-  ApiService({required String baseUrl, required NetworkService networkService})
-    : _dio = Dio(
-        BaseOptions(
-          baseUrl: baseUrl,
-          connectTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 15),
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
-        ),
-      ),
-      _network = networkService {
+  ApiService({
+    required String baseUrl,
+    required NetworkService networkService,
+  })  : _dio = dio.Dio(
+    dio.BaseOptions(
+      baseUrl: baseUrl,
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 15),
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+    ),
+  ),
+        _network = networkService {
     _dio.interceptors.add(
-      InterceptorsWrapper(
+      dio.InterceptorsWrapper(
         onRequest: (options, handler) {
+          // 🟦 log
+          // ignore: avoid_print
           print('REQ ${options.method} ${options.uri}');
+          // ignore: avoid_print
           print('HEADERS: ${options.headers}');
+
           if (_token != null && _token!.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $_token';
           } else {
@@ -33,7 +40,7 @@ class ApiService {
           }
           return handler.next(options);
         },
-        onError: (DioError e, handler) {
+        onError: (dio.DioException e, handler) {
           return handler.next(e);
         },
       ),
@@ -63,22 +70,26 @@ class ApiService {
 
   Map<String, dynamic> _mergeHeaders([Map<String, dynamic>? extra]) {
     final base = <String, dynamic>{};
-    if (_dio.options.headers != null)
-      base.addAll(_dio.options.headers! as Map<String, dynamic>);
+
+    final h = _dio.options.headers;
+    if (h.isNotEmpty) {
+      base.addAll(Map<String, dynamic>.from(h));
+    }
+
     if (extra != null) base.addAll(extra);
     return base;
   }
 
-  Future<Response> upload(
-    String path, {
-    required FormData formData,
-    void Function(int, int)? onSendProgress,
-    Map<String, dynamic>? extraHeaders,
-  }) async {
+  Future<dio.Response> upload(
+      String path, {
+        required dio.FormData formData,
+        void Function(int, int)? onSendProgress,
+        Map<String, dynamic>? extraHeaders,
+      }) async {
     await _ensureConnection();
 
     try {
-      final options = Options(
+      final options = dio.Options(
         headers: _mergeHeaders(extraHeaders),
         contentType: 'multipart/form-data',
       );
@@ -90,22 +101,22 @@ class ApiService {
         onSendProgress: onSendProgress,
       );
       return response;
-    } on DioError catch (e) {
+    } on dio.DioException catch (e) {
       throw _handleDioError(e);
     }
   }
 
-  Future<Response> get(
-    String path, {
-    Map<String, dynamic>? queryParameters,
-    dynamic data,
-    Map<String, dynamic>? extraHeaders,
-    Options? options,
-  }) async {
+  Future<dio.Response> get(
+      String path, {
+        Map<String, dynamic>? queryParameters,
+        dynamic data,
+        Map<String, dynamic>? extraHeaders,
+        dio.Options? options,
+      }) async {
     await _ensureConnection();
 
     try {
-      final requestOptions = options ?? Options();
+      final requestOptions = options ?? dio.Options();
       requestOptions.headers = _mergeHeaders(extraHeaders);
 
       if (data != null) {
@@ -125,23 +136,24 @@ class ApiService {
         );
         return response;
       }
-    } on DioError catch (e) {
+    } on dio.DioException catch (e) {
       throw _handleDioError(e);
     }
   }
 
-  Future<Response> post(
-    String path, {
-    dynamic data,
-    Map<String, dynamic>? queryParameters,
-    Map<String, dynamic>? extraHeaders,
-    Options? options,
-  }) async {
+  Future<dio.Response> post(
+      String path, {
+        dynamic data,
+        Map<String, dynamic>? queryParameters,
+        Map<String, dynamic>? extraHeaders,
+        dio.Options? options,
+      }) async {
     await _ensureConnection();
 
     try {
-      final requestOptions = options ?? Options();
+      final requestOptions = options ?? dio.Options();
       requestOptions.headers = _mergeHeaders(extraHeaders);
+
       final response = await _dio.post(
         path,
         data: data,
@@ -149,27 +161,26 @@ class ApiService {
         options: requestOptions,
       );
       return response;
-    } on DioError catch (e) {
+    } on dio.DioException catch (e) {
       throw _handleDioError(e);
     }
   }
 
   Future<Uint8List> downloadFileBytes(
-    String url, {
-    void Function(int, int)? onReceiveProgress,
-  }) async {
+      String url, {
+        void Function(int, int)? onReceiveProgress,
+      }) async {
     await _ensureConnection();
 
     try {
       final lower = url.toLowerCase();
       final isPdf = lower.endsWith('.pdf');
-      final isImage =
-          lower.endsWith('.jpg') ||
+      final isImage = lower.endsWith('.jpg') ||
           lower.endsWith('.jpeg') ||
           lower.endsWith('.png') ||
           lower.endsWith('.gif');
 
-      final headers = {...?_dio.options.headers};
+      final headers = Map<String, dynamic>.from(_dio.options.headers);
 
       if (isPdf) {
         headers['Accept'] = 'application/pdf';
@@ -179,11 +190,16 @@ class ApiService {
         headers['Accept'] = '*/*';
       }
 
+      // مهم: ما تبعت content-type بالـ GET
       headers.remove('content-type');
+      headers.remove('Content-Type');
 
       final response = await _dio.get<List<int>>(
         url,
-        options: Options(responseType: ResponseType.bytes, headers: headers),
+        options: dio.Options(
+          responseType: dio.ResponseType.bytes,
+          headers: headers,
+        ),
         onReceiveProgress: onReceiveProgress,
       );
 
@@ -192,21 +208,22 @@ class ApiService {
         throw ApiException('Empty response while downloading file');
       }
       return Uint8List.fromList(data);
-    } on DioError catch (e) {
+    } on dio.DioException catch (e) {
       throw _handleDioError(e);
     }
   }
 
-  ApiException _handleDioError(DioError e) {
-    if (e.type == DioErrorType.connectionTimeout ||
-        e.type == DioErrorType.sendTimeout ||
-        e.type == DioErrorType.receiveTimeout) {
+  ApiException _handleDioError(dio.DioException e) {
+    if (e.type == dio.DioExceptionType.connectionTimeout ||
+        e.type == dio.DioExceptionType.sendTimeout ||
+        e.type == dio.DioExceptionType.receiveTimeout) {
       return ApiException('Connection timed out');
     }
 
-    if (e.type == DioErrorType.badResponse && e.response != null) {
+    if (e.type == dio.DioExceptionType.badResponse && e.response != null) {
       final statusCode = e.response!.statusCode;
       final serverData = e.response!.data;
+
       String message = 'Received invalid status: $statusCode';
       if (serverData is Map && serverData['message'] != null) {
         message = serverData['message'].toString();
@@ -214,7 +231,7 @@ class ApiService {
       return ApiException(message, statusCode: statusCode);
     }
 
-    if (e.type == DioErrorType.unknown) {
+    if (e.type == dio.DioExceptionType.unknown) {
       return ApiException('Network error: ${e.message}');
     }
 
@@ -225,7 +242,9 @@ class ApiService {
 class ApiException implements Exception {
   final String message;
   final int? statusCode;
+
   ApiException(this.message, {this.statusCode});
+
   @override
   String toString() => 'ApiException: $message (code: $statusCode)';
 }

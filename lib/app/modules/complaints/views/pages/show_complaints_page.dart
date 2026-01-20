@@ -13,6 +13,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:goverment_complaints/app/modules/complaints/controllers/get_complaints_controller.dart';
 import 'package:goverment_complaints/app/modules/complaints/models/response/get_complaints_response_model.dart';
 import 'package:goverment_complaints/app/services/api_service.dart';
+import 'package:goverment_complaints/app/utils/app_snackbar.dart';
+
+import '../../../../../main.dart';
 
 class UserComplaintsView extends StatefulWidget {
   const UserComplaintsView({super.key});
@@ -117,13 +120,16 @@ class _UserComplaintsViewState extends State<UserComplaintsView>
     final ApiService api = Get.find<ApiService>();
 
     if (url.isEmpty) {
-      Get.snackbar('error'.tr, 'invalid_attachment_link'.tr);
+      showAppSnack(
+        title: 'error'.tr,
+        message: 'invalid_attachment_link'.tr,
+        type: AppSnackType.error,
+      );
       return;
     }
 
     final lower = url.toLowerCase();
-    final isImage =
-        lower.endsWith('.jpg') ||
+    final isImage = lower.endsWith('.jpg') ||
         lower.endsWith('.jpeg') ||
         lower.endsWith('.png') ||
         lower.endsWith('.gif');
@@ -132,36 +138,32 @@ class _UserComplaintsViewState extends State<UserComplaintsView>
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder:
-          (_) => Center(
-            child: CircularProgressIndicator(
-              color: Theme.of(context).primaryColor,
-            ),
-          ),
+      builder: (_) => Center(
+        child: CircularProgressIndicator(
+          color: Theme.of(context).primaryColor,
+        ),
+      ),
     );
 
     try {
-      print("Downloading from: $url");
-
       final Uint8List bytes = await api.downloadFileBytes(url);
 
-      Navigator.of(context).pop();
+      // close loader dialog (safe)
+      Navigator.of(context, rootNavigator: true).maybePop();
 
       if (isImage) {
         await showDialog(
           context: context,
-          builder:
-              (_) => Dialog(
-                backgroundColor: Colors.transparent,
-                child: InteractiveViewer(child: Image.memory(bytes)),
-              ),
+          builder: (_) => Dialog(
+            backgroundColor: Colors.transparent,
+            child: InteractiveViewer(child: Image.memory(bytes)),
+          ),
         );
       } else if (isPdf) {
         final tempDir = await getTemporaryDirectory();
         final filename = url.split('/').last.split('?').first;
         final file = File('${tempDir.path}/$filename.pdf');
         await file.writeAsBytes(bytes, flush: true);
-
         await Get.to(() => PdfViewPage(file: file));
       } else {
         final tempDir = await getTemporaryDirectory();
@@ -174,24 +176,22 @@ class _UserComplaintsViewState extends State<UserComplaintsView>
           Uri.file(file.path),
           mode: LaunchMode.externalApplication,
         );
+
         if (!launched) {
-          Get.snackbar(
-            'error'.tr,
-            'auto_open_failed'.trParams({'path': file.path}),
-            backgroundColor: Colors.red,
-            colorText: Colors.white,
+          showAppSnack(
+            title: 'error'.tr,
+            message: 'auto_open_failed'.trParams({'path': file.path}),
+            type: AppSnackType.error,
           );
         }
       }
     } catch (e) {
-      Navigator.of(context).pop();
-      Get.snackbar(
-        'error'.tr,
-        'download_error'.trParams({'error': e.toString()}),
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
+      Navigator.of(context, rootNavigator: true).maybePop();
+      showAppSnack(
+        title: 'error'.tr,
+        message: 'download_error'.trParams({'error': e.toString()}),
+        type: AppSnackType.error,
       );
-      print(e);
     }
   }
 
@@ -215,7 +215,7 @@ class _UserComplaintsViewState extends State<UserComplaintsView>
               statusIcon: _statusIcon(c.status),
               statusText: _statusText(c.status),
               onOpenAttachment: _openAttachment,
-              onClose: () => Navigator.pop(context),
+              onClose: () => Navigator.of(context).maybePop(),
             );
           },
         );
@@ -234,6 +234,15 @@ class _UserComplaintsViewState extends State<UserComplaintsView>
     );
   }
 
+  void _safeBack() {
+    rootMessengerKey.currentState?.clearSnackBars();
+
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).maybePop();
+      return;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -245,7 +254,9 @@ class _UserComplaintsViewState extends State<UserComplaintsView>
               position: _slideAnimation,
               child: FadeTransition(
                 opacity: _fadeAnimation,
-                child: UserComplaintsHeader(onBack: () => Get.back()),
+                child: UserComplaintsHeader(
+                  onBack: _safeBack,
+                ),
               ),
             ),
             Expanded(
@@ -253,7 +264,9 @@ class _UserComplaintsViewState extends State<UserComplaintsView>
                 if (_controller.isLoading.value) {
                   return const CenteredLoading();
                 }
+
                 final list = _controller.complaints;
+
                 if (list.isEmpty) {
                   return RefreshIndicator(
                     color: Theme.of(context).primaryColor,
@@ -261,6 +274,7 @@ class _UserComplaintsViewState extends State<UserComplaintsView>
                     child: const EmptyComplaintsView(),
                   );
                 }
+
                 return RefreshIndicator(
                   color: Theme.of(context).primaryColor,
                   onRefresh: _load,
@@ -268,8 +282,8 @@ class _UserComplaintsViewState extends State<UserComplaintsView>
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.only(top: 12, bottom: 16),
                     itemCount: list.length,
-                    itemBuilder:
-                        (context, index) => _buildCard(list[index], index),
+                    itemBuilder: (context, index) =>
+                        _buildCard(list[index], index),
                   ),
                 );
               }),

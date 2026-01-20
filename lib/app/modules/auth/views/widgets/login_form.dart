@@ -65,12 +65,6 @@ class LoginForm extends StatelessWidget {
                         : () async {
                           final resp = await controller.login();
                           if (resp != null) {
-                            Get.snackbar(
-                              'success'.tr,
-                              resp.message,
-                              backgroundColor: const Color(0xFFb9a779),
-                              colorText: Colors.white,
-                            );
                             Get.offAllNamed(AppRoutes.home);
                           }
                         },

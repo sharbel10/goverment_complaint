@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart' hide FormData, Response;
 import 'package:file_picker/file_picker.dart';
 import 'package:dio/dio.dart';
+
 import '../../../services/api_service.dart';
 import '../models/request/create_complaint_request_model.dart';
 import '../models/response/create_complaint_response_model.dart';
+import '../../../utils/app_snackbar.dart';
 
 class CreateComplaintController extends GetxController {
   final ApiService _api = Get.find<ApiService>();
+
   final RxString selectedType = ''.obs;
   final RxString selectedEntity = ''.obs;
   final RxString selectedLocation = ''.obs;
@@ -36,24 +39,21 @@ class CreateComplaintController extends GetxController {
 
       if (result == null) return;
 
-      final existingKeys =
-          attachments
-              .map(
-                (f) =>
-                    (f.path != null && f.path!.isNotEmpty)
-                        ? f.path!
-                        : '${f.name}_${f.size}',
-              )
-              .toSet();
+      final existingKeys = attachments
+          .map(
+            (f) => (f.path != null && f.path!.isNotEmpty)
+            ? f.path!
+            : '${f.name}_${f.size}',
+      )
+          .toSet();
 
       final List<PlatformFile> newFiles = [];
       int skipped = 0;
 
       for (final f in result.files) {
-        final key =
-            (f.path != null && f.path!.isNotEmpty)
-                ? f.path!
-                : '${f.name}_${f.size}';
+        final key = (f.path != null && f.path!.isNotEmpty)
+            ? f.path!
+            : '${f.name}_${f.size}';
         if (!existingKeys.contains(key)) {
           newFiles.add(f);
           existingKeys.add(key);
@@ -66,26 +66,33 @@ class CreateComplaintController extends GetxController {
         attachments.addAll(newFiles);
       }
 
+      debugPrint('PICK FILES -> added: ${newFiles.length}, skipped: $skipped');
+      for (final f in newFiles) {
+        debugPrint(
+          'PICK FILE -> name=${f.name}, size=${f.size}, path=${f.path}, ext=${f.extension}',
+        );
+      }
+
       if (skipped > 0) {
-        Get.snackbar(
-          'note'.tr,
-          'files_skipped'.trParams({'count': skipped.toString()}),
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
+        showAppSnack(
+          title: 'note'.tr,
+          message: 'files_skipped'.trParams({'count': skipped.toString()}),
+          type: AppSnackType.warning,
         );
       }
     } catch (e) {
-      Get.snackbar(
-        'error'.tr,
-        'pick_files_error'.tr,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
+      debugPrint('PICK FILES ERROR -> $e');
+      showAppSnack(
+        title: 'error'.tr,
+        message: 'pick_files_error'.tr,
+        type: AppSnackType.error,
       );
     }
   }
 
   void removeAttachment(PlatformFile file) {
     attachments.remove(file);
+    debugPrint('REMOVE FILE -> name=${file.name}, path=${file.path}');
   }
 
   Future<ComplaintSubmitResponse?> submit() async {
@@ -94,15 +101,16 @@ class CreateComplaintController extends GetxController {
     final location = selectedLocation.value;
     final description = descriptionCtrl.text.trim();
 
-    if (type.isEmpty ||
-        entity.isEmpty ||
-        location.isEmpty ||
-        description.isEmpty) {
-      Get.snackbar(
-        'error'.tr,
-        'fill_all_fields'.tr,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
+    debugPrint('SUBMIT COMPLAINT -> type=$type, entity=$entity, location=$location');
+    debugPrint('SUBMIT COMPLAINT -> description length=${description.length}');
+    debugPrint('SUBMIT COMPLAINT -> attachments count=${attachments.length}');
+
+    if (type.isEmpty || entity.isEmpty || location.isEmpty || description.isEmpty) {
+      debugPrint('SUBMIT COMPLAINT -> validation failed (empty fields)');
+      showAppSnack(
+        title: 'error'.tr,
+        message: 'fill_all_fields'.tr,
+        type: AppSnackType.error,
       );
       return null;
     }
@@ -121,59 +129,86 @@ class CreateComplaintController extends GetxController {
     try {
       final FormData form = await req.toFormData();
 
-      final Response response = await _api.upload(
-        'submit-complaint',
-        formData: form,
-        onSendProgress: (sent, total) {
-          if (total > 0) {
-            uploadProgress.value = sent / total;
-          }
-        },
-      );
+      debugPrint('SUBMIT COMPLAINT -> FormData fields: ${form.fields}');
+      debugPrint('SUBMIT COMPLAINT -> FormData files count: ${form.files.length}');
+      for (final f in form.files) {
+        debugPrint('SUBMIT COMPLAINT -> file field=${f.key}, filename=${f.value.filename}');
+      }
+
+      late final Response response;
+
+      try {
+        response = await _api.upload(
+          'submit-complaint',
+          formData: form,
+          onSendProgress: (sent, total) {
+            if (total > 0) {
+              uploadProgress.value = sent / total;
+            }
+            debugPrint('UPLOAD PROGRESS -> $sent / $total');
+          },
+        );
+      } on DioError catch (e) {
+        debugPrint('UPLOAD DIO ERROR -> type: ${e.type}');
+        debugPrint('UPLOAD DIO ERROR -> message: ${e.message}');
+        debugPrint('UPLOAD DIO ERROR -> status: ${e.response?.statusCode}');
+        debugPrint('UPLOAD DIO ERROR -> data: ${e.response?.data}');
+        rethrow;
+      }
+
+      debugPrint('SUBMIT COMPLAINT -> statusCode: ${response.statusCode}');
+      debugPrint('SUBMIT COMPLAINT -> headers: ${response.headers.map}');
+      debugPrint('SUBMIT COMPLAINT -> data: ${response.data}');
 
       final body = response.data;
-      if (body is Map<String, dynamic>) {
-        final parsed = ComplaintSubmitResponse.fromJson(body);
+
+      if (body is Map) {
+        final parsed = ComplaintSubmitResponse.fromJson(
+          Map<String, dynamic>.from(body),
+        );
+
+        debugPrint(
+          'SUBMIT COMPLAINT -> parsed.status=${parsed.status}, message=${parsed.message}',
+        );
+
         if (parsed.status.toLowerCase() == 'success') {
-          Get.snackbar(
-            'success'.tr,
-            parsed.message,
-            backgroundColor: Color(0xFFb9a779),
-            colorText: Colors.white,
+          showAppSnack(
+            title: 'success'.tr,
+            message: parsed.message,
+            type: AppSnackType.success,
           );
           return parsed;
         } else {
-          Get.snackbar(
-            'failed'.tr,
-            parsed.message,
-            backgroundColor: Colors.red,
-            colorText: Colors.white,
+          showAppSnack(
+            title: 'failed'.tr,
+            message: parsed.message,
+            type: AppSnackType.error,
           );
           return parsed;
         }
       } else {
-        Get.snackbar(
-          'error'.tr,
-          'unexpected_response'.tr,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
+        debugPrint('SUBMIT COMPLAINT -> unexpected response type: ${body.runtimeType}');
+        showAppSnack(
+          title: 'error'.tr,
+          message: 'unexpected_response'.tr,
+          type: AppSnackType.error,
         );
         return null;
       }
     } on ApiException catch (e) {
-      Get.snackbar(
-        'error'.tr,
-        e.message,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
+      debugPrint('SUBMIT COMPLAINT -> ApiException: ${e.message} (code: ${e.statusCode})');
+      showAppSnack(
+        title: 'error'.tr,
+        message: e.message,
+        type: AppSnackType.error,
       );
       return null;
     } catch (e) {
-      Get.snackbar(
-        'error'.tr,
-        e.toString(),
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
+      debugPrint('SUBMIT COMPLAINT -> Unexpected error: $e');
+      showAppSnack(
+        title: 'error'.tr,
+        message: e.toString(),
+        type: AppSnackType.error,
       );
       return null;
     } finally {
@@ -189,5 +224,7 @@ class CreateComplaintController extends GetxController {
     descriptionCtrl.clear();
     attachments.clear();
     uploadProgress.value = 0.0;
+
+    debugPrint('CLEAR FORM -> done');
   }
 }

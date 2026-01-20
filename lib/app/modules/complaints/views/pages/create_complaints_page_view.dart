@@ -81,6 +81,7 @@ class _HomeViewState extends State<HomeView> {
           ),
         ],
       ),
+      barrierDismissible: false,
     );
 
     if (confirm != true) return;
@@ -90,26 +91,18 @@ class _HomeViewState extends State<HomeView> {
       await _secureStorage.delete(key: 'citizen_id');
       await _secureStorage.delete(key: 'citizen');
 
-      try {
-        _api.setAuthToken('');
-      } catch (_) {}
+      _api.clearAuthToken(); // بدل setAuthToken('')
 
       controller.clearAll();
 
       Get.offAllNamed(AppRoutes.login);
-
-      Get.snackbar(
-        'done'.tr,
-        'logout_success'.tr,
-        backgroundColor: const Color(0xFFb9a779),
-        colorText: Colors.white,
-      );
     } catch (e) {
       Get.snackbar(
         'error'.tr,
         'logout_failed'.trParams({'error': e.toString()}),
         backgroundColor: Colors.red,
         colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
       );
     }
   }
